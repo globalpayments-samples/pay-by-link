@@ -3,15 +3,15 @@
 declare(strict_types=1);
 
 /**
- * Configuration Endpoint
+ * Configuration Endpoint for Pay by Link
  *
- * This script provides configuration information for the client-side SDK,
- * including the public API key needed for tokenization.
+ * This script provides configuration information for the Pay by Link interface,
+ * including environment settings and supported options.
  *
- * PHP version 7.4 or higher
+ * PHP version 8.0 or higher
  *
  * @category  Configuration
- * @package   GlobalPayments_Sample
+ * @package   GlobalPayments_PayByLink
  * @author    Global Payments
  * @license   MIT License
  * @link      https://github.com/globalpayments
@@ -20,6 +20,8 @@ declare(strict_types=1);
 require_once 'vendor/autoload.php';
 
 use Dotenv\Dotenv;
+use GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig;
+use GlobalPayments\Api\Entities\Enums\Environment;
 
 try {
     // Load environment variables from .env file
@@ -28,12 +30,40 @@ try {
 
     // Set response content type to JSON
     header('Content-Type: application/json');
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-    // Return public API key in JSON response
+    // Handle preflight requests
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(200);
+        exit;
+    }
+
+    // Determine environment from configuration
+    $environment = $_ENV['GP_API_ENVIRONMENT'] ?? 'sandbox';
+    $isProduction = strtolower($environment) === 'production';
+
+    // Return configuration for Pay by Link
     echo json_encode([
         'success' => true,
         'data' => [
-            'publicApiKey' => $_ENV['PUBLIC_API_KEY'],
+            'environment' => $environment,
+            'supportedCurrencies' => ['EUR', 'USD', 'GBP', 'CAD'],
+            'supportedPaymentMethods' => ['CARD'],
+            'defaultCurrency' => 'EUR',
+            'maxAmount' => 999999, // Maximum amount in cents
+            'minAmount' => 1, // Minimum amount in cents
+            'usageModes' => [
+                'SINGLE' => 'Single Use',
+                'MULTIPLE' => 'Multiple Use'
+            ],
+            'api' => [
+                'version' => '2021-03-22',
+                'baseUrl' => $isProduction
+                    ? 'https://apis.globalpay.com'
+                    : 'https://apis.sandbox.globalpay.com'
+            ]
         ],
     ]);
 } catch (Exception $e) {
