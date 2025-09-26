@@ -151,14 +151,14 @@
             // Debug: Log the values being sent
             console.log('Form data being sent:', formValues);
 
-            // Use URLSearchParams for better compatibility with Java servlet
+            // Use URLSearchParams for better compatibility
             const formData = new URLSearchParams();
             Object.keys(formValues).forEach(key => {
                 formData.append(key, formValues[key]);
             });
 
             try {
-                // Submit to our Java servlet endpoint
+                // Submit to our API with proper headers
                 const response = await fetch('create-payment-link', {
                     method: 'POST',
                     headers: {
