@@ -1,21 +1,13 @@
 /**
- * Global Payments SDK Template - Node.js
- * 
- * This Express application provides a starting template for Global Payments SDK integration.
- * Customize the endpoints and logic below for your specific use case.
+ * Global Payments Pay by Link - Node.js
+ *
+ * This Express application provides Pay by Link functionality using the Global Payments API.
+ * Creates secure payment links that can be shared with customers via email, SMS, or other channels.
  */
 
 import express from 'express';
 import * as dotenv from 'dotenv';
-import {
-    ServicesContainer,
-    GpApiConfig,
-    Environment,
-    GpApiService,
-    Address,
-    CreditCardData,
-    ApiError
-} from 'globalpayments-api';
+import crypto from 'crypto';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -30,31 +22,84 @@ app.use(express.static('.')); // Serve static files
 app.use(express.urlencoded({ extended: true })); // Parse form data
 app.use(express.json()); // Parse JSON requests
 
-// Configure Global Payments SDK with GP API credentials and settings
-const config = new GpApiConfig();
-config.appId = process.env.GP_API_APP_ID || "QgKeFv7BuZlDcZvUeaxdA2jRsFukThCD";
-config.appKey = process.env.GP_API_APP_KEY || "eS5f8cCbuK8c6d5T";
-config.environment = Environment.Test; // Use Environment.Production for live transactions
-ServicesContainer.configureService(config);
+// GP API Configuration
+const GP_API_APP_ID = process.env.GP_API_APP_ID || "4gPqnGBkppGYvoE5UX9EWQlotTxGUDbs";
+const GP_API_APP_KEY = process.env.GP_API_APP_KEY || "FQyJA5VuEQfcji2M";
+const GP_API_BASE_URL = 'https://apis.sandbox.globalpay.com/ucp';
+const GP_API_VERSION = '2021-03-22';
 
 /**
- * Utility function to sanitize postal code
- * Customize validation logic as needed for your use case
+ * Generate a secret hash using SHA512 for GP API authentication.
+ * The secret is created as SHA512(NONCE + APP-KEY).
+ *
+ * @param {string} nonce - The nonce value
+ * @param {string} appKey - The application key
+ * @returns {string} SHA512 hash as lowercase hex string
  */
-const sanitizePostalCode = (postalCode) => {
-    return postalCode.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 10);
+const generateSecret = (nonce, appKey) => {
+    return crypto.createHash('sha512').update(nonce + appKey).digest('hex').toLowerCase();
 };
 
 /**
- * Config endpoint - provides configuration for client-side use
- * Customize response data as needed
+ * Generate an access token for GP API using app credentials.
+ *
+ * @returns {Promise<Object>} Token response containing access token and account info
+ * @throws {Error} If token generation fails
+ */
+const generateAccessToken = async () => {
+    if (!GP_API_APP_ID || !GP_API_APP_KEY) {
+        throw new Error('Missing GP_API_APP_ID or GP_API_APP_KEY environment variables');
+    }
+
+    // Generate nonce using the same format as other implementations
+    const now = new Date();
+    const nonce = now.toLocaleString('en-US', {
+        timeZone: 'UTC',
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        fractionalSecondDigits: 3,
+        hour12: true
+    });
+
+    const tokenRequest = {
+        app_id: GP_API_APP_ID,
+        nonce: nonce,
+        grant_type: 'client_credentials',
+        secret: generateSecret(nonce, GP_API_APP_KEY)
+    };
+
+    const response = await fetch(`${GP_API_BASE_URL}/accesstoken`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-GP-Api-Key': GP_API_APP_KEY,
+            'X-GP-Version': GP_API_VERSION,
+            'Accept': 'application/json',
+            'User-Agent': 'PayByLink-NodeJS/1.0'
+        },
+        body: JSON.stringify(tokenRequest)
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Token request failed with status ${response.status}: ${errorText}`);
+    }
+
+    return await response.json();
+};
+
+/**
+ * Config endpoint - provides config for client-side use
  */
 app.get('/config', (req, res) => {
     res.json({
         success: true,
         data: {
-            environment: config.environment === Environment.Test ? 'sandbox' : 'production',
-            // Note: Never expose sensitive keys like appKey in client responses
+            environment: 'sandbox',
             supportedCurrencies: ['EUR', 'USD', 'GBP'],
             supportedPaymentMethods: ['CARD']
         }
@@ -62,97 +107,152 @@ app.get('/config', (req, res) => {
 });
 
 /**
+ * Sanitize reference string by removing potentially harmful characters
+ */
+const sanitizeReference = (reference) => {
+    if (!reference) {
+        return '';
+    }
+    // Remove non-alphanumeric characters except spaces, hyphens, and hash
+    const sanitized = reference.replace(/[^\w\s\-#]/g, '');
+    return sanitized.substring(0, 100);
+};
+
+/**
  * Create payment link endpoint
- * Creates a new payment link using the Global Payments API
+ * Creates a new payment link using Global Payments API
  */
 app.post('/create-payment-link', async (req, res) => {
     try {
-        // Extract parameters from request body with defaults
-        const {
-            amount = 1000, // Default to 10.00 in cents
-            currency = 'EUR',
-            reference = 'Invoice #1234567',
-            name = 'Invoice #1234567',
-            description = 'Your order description'
-        } = req.body;
+        // Log request for debugging (remove in production)
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Received payment link request');
+        }
 
-        // Generate an access token using the Global Payments API service
-        console.log('Attempting to generate access token with config:', {
-            appId: config.appId,
-            environment: config.environment
-        });
+        // Validate required fields
+        const requiredFields = ['amount', 'currency', 'reference', 'name', 'description'];
+        const missingFields = requiredFields.filter(field => !req.body[field]);
 
-        const tokenResponse = await GpApiService.generateTransactionKey(config);
-        console.log('Token response received:', {
-            hasAccessToken: !!tokenResponse.accessToken,
-            hasMerchantId: !!tokenResponse.merchantId,
-            hasAccountName: !!tokenResponse.transactionProcessingAccountName
-        });
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Payment link creation failed',
+                error: {
+                    code: 'MISSING_REQUIRED_FIELDS',
+                    details: `Missing required fields. Received: ${Object.keys(req.body).join(', ')}`
+                }
+            });
+        }
 
-        // Extract access token, merchant ID, and account name from the token response
-        const accessToken = tokenResponse.accessToken;
-        const merchantId = tokenResponse.merchantId;
-        const accountName = tokenResponse.transactionProcessingAccountName;
+        // Parse and validate amount
+        const amount = parseInt(req.body.amount);
+        if (amount <= 0 || isNaN(amount)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Payment link creation failed',
+                error: {
+                    code: 'INVALID_AMOUNT',
+                    details: 'Invalid amount'
+                }
+            });
+        }
 
-        // Construct the request body for creating the payment link
-        const requestBody = {
+        // Sanitize and prepare data
+        const reference = sanitizeReference(req.body.reference);
+        const name = req.body.name.trim().substring(0, 100);
+        const description = req.body.description.trim().substring(0, 500);
+        const currency = req.body.currency.trim().toUpperCase();
+
+        // Generate access token
+        const tokenResponse = await generateAccessToken();
+
+        if (!tokenResponse.token) {
+            throw new Error('Failed to generate access token');
+        }
+
+        const accessToken = tokenResponse.token;
+        const merchantId = tokenResponse.merchant_id;
+        const accountName = tokenResponse.transaction_processing_account_name || 'paylink';
+
+        // Create PayByLink data object
+        const payByLinkData = {
             account_name: accountName,
-            type: "PAYMENT",
-            usage_mode: "SINGLE", // Link can be used only once
+            type: "PAYMENT",                    // PayByLinkType::PAYMENT
+            usage_mode: "SINGLE",               // PaymentMethodUsageMode::SINGLE
+            usage_limit: 1,                     // usageLimit = 1
             reference: reference,
             name: name,
             description: description,
-            shippable: "NO", // Indicates if the item is shippable
+            shippable: "YES",
+            shipping_amount: 0,                 // shippingAmount = 0
+            expiration_date: new Date(Date.now() + (10 * 24 * 60 * 60 * 1000)).toISOString(), // +10 days
             transactions: {
-                allowed_payment_methods: ["CARD"],
-                channel: "CNP", // Card Not Present transaction
-                country: "IE", // Country code for Ireland
-                amount: amount,
+                allowed_payment_methods: ["CARD"], // allowedPaymentMethods = [PaymentMethodName::CARD]
+                channel: "CNP",                   // Card Not Present
+                country: "GB",
+                amount: amount,                   // Amount in cents
                 currency: currency,
             },
             notifications: {
-                return_url: "https://www.example.com/return",
-                status_url: "https://www.example.com/status",
-                cancel_url: "https://www.example.com/cancel",
-            },
+                return_url: "https://www.example.com/returnUrl",     // returnUrl
+                status_url: "https://www.example.com/statusUrl",     // statusUpdateUrl
+                cancel_url: "https://www.example.com/returnUrl",     // cancelUrl
+            }
         };
 
-        // Only add merchant_id if it exists
+        // Add merchant_id if available
         if (merchantId) {
-            requestBody.merchant_id = merchantId;
+            payByLinkData.merchant_id = merchantId;
         }
 
         // Make API call to create payment link
-        console.log('Making API request to create payment link:', {
-            url: "https://apis.sandbox.globalpay.com/ucp/links",
-            requestBody: requestBody
-        });
-
-        const response = await fetch("https://apis.sandbox.globalpay.com/ucp/links", {
+        const response = await fetch(`${GP_API_BASE_URL}/links`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${accessToken}`,
-                "X-GP-Version": "2021-03-22", // API version header
+                "X-GP-Version": GP_API_VERSION,
+                "Accept": "application/json",
+                "User-Agent": "PayByLink-NodeJS/1.0"
             },
-            body: JSON.stringify(requestBody),
+            body: JSON.stringify(payByLinkData),
         });
 
-        console.log('API response status:', response.status);
-
-        // Handle API response
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`API Error: ${response.status} ${errorText}`);
+            let errorDetails = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorDetails = errorJson.error_description || errorJson.message || errorText;
+            } catch (e) {
+                // Use raw error text if JSON parsing fails
+            }
+
+            return res.status(400).json({
+                success: false,
+                message: 'Payment link creation failed',
+                error: {
+                    code: 'API_ERROR',
+                    details: errorDetails,
+                    responseCode: response.status
+                }
+            });
         }
 
-        // Parse the successful response and extract the payment link URL
+        // Parse successful response
         const responseData = await response.json();
+
+        // Extract payment link URL from response
         const paymentLink = responseData.url;
 
+        if (!paymentLink) {
+            throw new Error('No payment link URL in response');
+        }
+
+        // Return success response
         res.json({
             success: true,
-            message: 'Payment link created successfully',
+            message: `Payment link created successfully! Link ID: ${responseData.id}`,
             data: {
                 paymentLink: paymentLink,
                 linkId: responseData.id,
@@ -164,10 +264,24 @@ app.post('/create-payment-link', async (req, res) => {
 
     } catch (error) {
         console.error('Payment link creation failed:', error);
+
+        // Handle different error types
+        let errorCode = 'UNKNOWN_ERROR';
+        let errorDetails = error.message;
+
+        if (error.message.includes('Failed to generate access token') || error.message.includes('Token request failed')) {
+            errorCode = 'TOKEN_GENERATION_ERROR';
+        } else if (error.message.includes('Payment link creation failed') || error.message.includes('No payment link URL')) {
+            errorCode = 'API_ERROR';
+        }
+
         res.status(500).json({
             success: false,
             message: 'Payment link creation failed',
-            error: error.message
+            error: {
+                code: errorCode,
+                details: errorDetails
+            }
         });
     }
 });
@@ -184,5 +298,5 @@ app.post('/create-payment-link', async (req, res) => {
 // Start the server
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${port}`);
-    console.log(`Customize this template for your use case!`);
+    console.log(`Pay by Link server ready for payment link creation!`);
 });

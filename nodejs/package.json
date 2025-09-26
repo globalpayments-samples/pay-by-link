@@ -1,7 +1,7 @@
 {
-  "name": "card-payments",
+  "name": "pay-by-link-nodejs",
   "version": "1.0.0",
-  "description": "Card payments example using Node.js",
+  "description": "Global Payments Pay by Link implementation using Node.js",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
