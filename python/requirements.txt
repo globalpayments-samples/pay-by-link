@@ -1,4 +1,10 @@
+# Global Payments Pay by Link - Python Dependencies
+# Core web framework and HTTP client
 Flask==3.0.0
-globalpayments.api==2.0.4
-gunicorn==21.2.0
+requests==2.31.0
+
+# Environment configuration
 python-dotenv==1.0.0
+
+# Production WSGI server
+gunicorn==21.2.0
