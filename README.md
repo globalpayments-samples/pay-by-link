@@ -1,14 +1,14 @@
-# Global Payments Pay by Link - Multi-Language Implementation
+# Global Payments Pay by Link
 
 This repository provides comprehensive **Pay by Link** implementations using the Global Payments GP API across six programming languages. Pay by Link allows merchants to create secure payment links that can be shared with customers via email, SMS, or other channels, enabling remote payments without requiring customers to visit a physical location or website.
 
 ## Available Implementations
 
-- **[.NET Core](./dotnet/)** - ASP.NET Core web application with minimal APIs
+- **[.NET Core](./dotnet/)** - ASP.NET Core web application with direct API calls
 - **[Go](./go/)** - Native Go HTTP server with direct API integration
-- **[Java](./java/)** - Jakarta EE servlet-based web application
-- **[Node.js](./nodejs/)** - Express.js web application with GP SDK integration
-- **[PHP](./php/)** - Native PHP implementation with GP SDK
+- **[Java](./java/)** - Jakarta EE servlet-based web application with direct API calls
+- **[Node.js](./nodejs/)** - Express.js web application with direct API calls
+- **[PHP](./php/)** - Native PHP implementation using Global Payments SDK
 - **[Python](./python/)** - Flask web application with direct API calls
 
 ## Features
@@ -284,9 +284,26 @@ notifications: {
 
 ### Direct API vs SDK
 
-- **Node.js & PHP:** Use GP SDK for authentication, direct API calls for payment links
-- **Python, Go, Java, .NET:** Use direct HTTP API calls for both authentication and payment links
+- **Direct API Implementations:** Python, Node.js, Go, Java, .NET (all use direct HTTP calls to `https://apis.sandbox.globalpay.com/ucp/links`)
+- **SDK Implementation:** PHP (uses `PayByLinkService` from Global Payments SDK)
 - **Consistency:** All implementations achieve identical functionality regardless of approach
+
+### Technical Implementation Details
+
+**Direct API Approach:**
+- Makes raw HTTP POST requests to Global Payments REST endpoints
+- Handles authentication token generation manually
+- Constructs JSON payloads directly
+- Processes HTTP responses and error handling manually
+- Examples: Python (requests), Go (net/http), Node.js (fetch/axios), Java (HttpClient), .NET (HttpClient)
+
+**SDK Approach:**
+- Uses Global Payments SDK wrapper methods
+- SDK handles authentication, request/response formatting, and error mapping
+- Provides type-safe objects and method calls
+- Examples: PHP using `PayByLinkService::create()` method
+
+**Note:** While some implementations include SDK dependencies in their package files (e.g., Node.js has `globalpayments-api`, Java has `globalpayments-sdk`), they still make direct API calls for payment link creation rather than using SDK methods.
 
 ### Response Format
 
