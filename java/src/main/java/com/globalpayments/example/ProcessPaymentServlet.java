@@ -6,22 +6,25 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
+import com.global.api.ServicesContainer;
+import com.global.api.entities.Transaction;
+import com.global.api.entities.PayByLinkData;
+import com.global.api.entities.enums.Channel;
+import com.global.api.entities.enums.Environment;
+import com.global.api.entities.enums.PayByLinkType;
+import com.global.api.entities.enums.PaymentMethodUsageMode;
+import com.global.api.entities.enums.PaymentMethodName;
+import com.global.api.entities.enums.Target;
+import com.global.api.entities.exceptions.ApiException;
+import com.global.api.entities.gpApi.entities.AccessTokenInfo;
+import com.global.api.serviceConfigs.GpApiConfig;
+import com.global.api.services.PayByLinkService;
+import com.global.api.utils.GenerationUtils;
+import org.joda.time.DateTime;
+
 import java.io.IOException;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
 import java.math.BigDecimal;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.UUID;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.nio.charset.StandardCharsets;
 
 /**
  * Pay by Link Creation Servlet
@@ -46,12 +49,39 @@ public class ProcessPaymentServlet extends HttpServlet {
 
     /**
      * Initializes the servlet with GP API settings.
+     * Configures the Global Payments SDK.
      */
     @Override
     public void init() throws ServletException {
         // Set environment
         environment = "sandbox";
-        // GP API Pay by Link servlet initialized
+
+        // Configure SDK
+        try {
+            configureSdk();
+        } catch (Exception e) {
+            throw new ServletException("Failed to configure Global Payments SDK", e);
+        }
+    }
+
+    /**
+     * Configure the Global Payments SDK
+     * Sets up the SDK with necessary credentials and settings loaded from environment variables.
+     */
+    private void configureSdk() throws Exception {
+        GpApiConfig config = new GpApiConfig();
+        config.setAppId(dotenv.get("GP_API_APP_ID"));
+        config.setAppKey(dotenv.get("GP_API_APP_KEY"));
+        config.setEnvironment(Environment.TEST); // Use Environment.PRODUCTION for live transactions
+        config.setChannel(Channel.CardNotPresent);
+        config.setCountry("GB");
+
+        // Set up access token info for Pay by Link
+        AccessTokenInfo accessTokenInfo = new AccessTokenInfo();
+        accessTokenInfo.setTransactionProcessingAccountName("paylink");
+        config.setAccessTokenInfo(accessTokenInfo);
+
+        ServicesContainer.configureService(config);
     }
 
     /**
@@ -94,18 +124,6 @@ public class ProcessPaymentServlet extends HttpServlet {
         return sanitized.length() > 100 ? sanitized.substring(0, 100) : sanitized;
     }
 
-    /**
-     * Formats a date for payment link expiration (10 days from now).
-     * Formats a date for payment link expiration (10 days from now).
-     *
-     * @return Formatted date string for expiration
-     */
-    private String getExpirationDate() {
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DAY_OF_MONTH, 10);
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        return sdf.format(calendar.getTime());
-    }
 
     /**
      * Handles POST requests to /create-payment-link endpoint.
@@ -171,16 +189,24 @@ public class ProcessPaymentServlet extends HttpServlet {
 
             String currency = request.getParameter("currency").trim().toUpperCase();
 
-            // Create payment link using direct API call (matching Node.js approach)
-            String paymentLinkResponse = createPaymentLinkViaAPI(amount, currency, reference, name, description);
+            // Create payment link using SDK
+            String paymentLinkResponse = createPaymentLinkViaSdk(amount, currency, reference, name, description);
 
             response.getWriter().write(paymentLinkResponse);
 
-        } catch (Exception e) {
-            // Handle payment link creation errors
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        } catch (ApiException e) {
+            // Handle API-specific errors
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             String errorResponse = String.format(
                 "{\"success\":false,\"message\":\"Payment link creation failed\",\"error\":{\"code\":\"API_ERROR\",\"details\":\"%s\"}}",
+                e.getMessage().replace("\"", "\\\"")
+            );
+            response.getWriter().write(errorResponse);
+        } catch (Exception e) {
+            // Handle other errors
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            String errorResponse = String.format(
+                "{\"success\":false,\"message\":\"Payment link creation failed\",\"error\":{\"code\":\"INTERNAL_ERROR\",\"details\":\"%s\"}}",
                 e.getMessage().replace("\"", "\\\"")
             );
             response.getWriter().write(errorResponse);
@@ -188,8 +214,8 @@ public class ProcessPaymentServlet extends HttpServlet {
     }
 
     /**
-     * Creates a payment link using direct GP API HTTP calls.
-     * Matches the Node.js implementation approach with access token generation.
+     * Creates a payment link using the Global Payments SDK.
+     * Matches the implementation approach using PayByLinkService.
      *
      * @param amount Amount in cents
      * @param currency Currency code
@@ -197,320 +223,53 @@ public class ProcessPaymentServlet extends HttpServlet {
      * @param name Payment name
      * @param description Payment description
      * @return JSON response string
-     * @throws IOException If there's an error in the HTTP request
+     * @throws ApiException If there's an error in the API call
      */
-    private String createPaymentLinkViaAPI(int amount, String currency, String reference, String name, String description) throws IOException {
+    private String createPaymentLinkViaSdk(int amount, String currency, String reference, String name, String description) throws ApiException {
         try {
-            // Generate access token first using SDK
-            String[] tokenData = generateAccessToken();
-            String accessToken = tokenData[0];
-            String merchantId = tokenData[1];
-            String accountName = tokenData[2];
+            // Create PayByLinkData request object
+            PayByLinkData payByLink = new PayByLinkData();
+            payByLink.setType(PayByLinkType.PAYMENT);
+            payByLink.setUsageMode(PaymentMethodUsageMode.SINGLE);
+            payByLink.setAllowedPaymentMethods(new String[]{PaymentMethodName.Card.getValue(Target.GP_API)});
+            payByLink.setUsageLimit(1);
+            payByLink.setName(name);
+            payByLink.isShippable(true);
+            payByLink.setShippingAmount(new BigDecimal("0"));
 
-            // Create PayByLink data object matching Node.js implementation
-            String expirationDate = getExpirationDate();
+            // Set expiration date to 10 days from now (using Joda DateTime)
+            payByLink.setExpirationDate(DateTime.now().plusDays(10));
 
-            String payByLinkJson = String.format(
-                "{" +
-                "\"account_name\":\"%s\"," +
-                "\"type\":\"PAYMENT\"," +
-                "\"usage_mode\":\"SINGLE\"," +
-                "\"usage_limit\":1," +
-                "\"reference\":\"%s\"," +
-                "\"name\":\"%s\"," +
-                "\"description\":\"%s\"," +
-                "\"shippable\":\"YES\"," +
-                "\"shipping_amount\":0," +
-                "\"expiration_date\":\"%s\"," +
-                "\"transactions\":{" +
-                    "\"allowed_payment_methods\":[\"CARD\"]," +
-                    "\"channel\":\"CNP\"," +
-                    "\"country\":\"GB\"," +
-                    "\"amount\":%d," +
-                    "\"currency\":\"%s\"" +
-                "}," +
-                "\"notifications\":{" +
-                    "\"return_url\":\"https://www.example.com/returnUrl\"," +
-                    "\"status_url\":\"https://www.example.com/statusUrl\"," +
-                    "\"cancel_url\":\"https://www.example.com/returnUrl\"" +
-                "}" +
-                (merchantId != null ? ",\"merchant_id\":\"" + merchantId + "\"" : "") +
-                "}",
-                accountName, reference, name, description, expirationDate, amount, currency
+            // Set URLs for notifications
+            payByLink.setReturnUrl("https://www.example.com/returnUrl");
+            payByLink.setStatusUpdateUrl("https://www.example.com/statusUrl");
+            payByLink.setCancelUrl("https://www.example.com/returnUrl");
+
+            // Create the payment link using PayByLinkService (amount in dollars, not cents)
+            Transaction transactionResponse = PayByLinkService
+                .create(payByLink, new BigDecimal(amount).divide(new BigDecimal(100)))
+                .withCurrency(currency)
+                .withClientTransactionId(GenerationUtils.generateRecurringKey())
+                .withDescription(description)
+                .execute();
+
+            // Extract payment link URL from response
+            String paymentLink = transactionResponse.getPayByLinkResponse().getUrl();
+            String linkId = transactionResponse.getPayByLinkResponse().getId();
+
+            // Return success response
+            return String.format(
+                "{\"success\":true,\"message\":\"Payment link created successfully! Link ID: %s\",\"data\":{\"paymentLink\":\"%s\",\"linkId\":\"%s\",\"reference\":\"%s\",\"amount\":%d,\"currency\":\"%s\"}}",
+                linkId, paymentLink, linkId, reference, amount, currency
             );
 
-            // Make API call to create payment link
-            URL url = new URL("https://apis.sandbox.globalpay.com/ucp/links");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
-            conn.setRequestProperty("X-GP-Version", "2021-03-22");
-            conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("Accept-Encoding", "gzip, deflate");
-            conn.setRequestProperty("User-Agent", "PayByLink-Java/1.0");
-            conn.setDoOutput(true);
-
-            // Send request
-            try (OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream())) {
-                writer.write(payByLinkJson);
-            }
-
-            // Read response
-            int responseCode = conn.getResponseCode();
-            StringBuilder responseBody = new StringBuilder();
-
-            // Use helper method to handle compressed responses
-            boolean isSuccessResponse = (responseCode >= 200 && responseCode < 300);
-            try (InputStream inputStream = getResponseStream(conn, isSuccessResponse);
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    responseBody.append(line);
-                }
-            }
-
-            if (responseCode >= 200 && responseCode < 300) {
-                // Parse successful response
-                String responseStr = responseBody.toString();
-
-                // Extract payment link URL and ID using simple string manipulation
-                String paymentLink = extractJsonValue(responseStr, "url");
-                String linkId = extractJsonValue(responseStr, "id");
-
-                if (paymentLink == null || linkId == null) {
-                    throw new IOException("Invalid response format: missing url or id");
-                }
-
-                // Return success response
-                return String.format(
-                    "{\"success\":true,\"message\":\"Payment link created successfully! Link ID: %s\",\"data\":{\"paymentLink\":\"%s\",\"linkId\":\"%s\",\"reference\":\"%s\",\"amount\":%d,\"currency\":\"%s\"}}",
-                    linkId, paymentLink, linkId, reference, amount, currency
-                );
-            } else {
-                // Handle API error
-                String errorDetails = responseBody.toString();
-                try {
-                    // Try to extract error message from JSON
-                    String errorMsg = extractJsonValue(errorDetails, "error_description");
-                    if (errorMsg == null) {
-                        errorMsg = extractJsonValue(errorDetails, "message");
-                    }
-                    if (errorMsg != null) {
-                        errorDetails = errorMsg;
-                    }
-                } catch (Exception ignored) {
-                    // Use raw error if JSON parsing fails
-                }
-
-                return String.format(
-                    "{\"success\":false,\"message\":\"Payment link creation failed\",\"error\":{\"code\":\"API_ERROR\",\"details\":\"%s\",\"responseCode\":%d}}",
-                    errorDetails.replace("\"", "\\\""), responseCode
-                );
-            }
-
-        } catch (IOException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new IOException("Payment link creation failed: " + e.getMessage(), e);
+        } catch (ApiException e) {
+            // Handle payment link creation errors
+            return String.format(
+                "{\"success\":false,\"message\":\"Payment link creation failed\",\"error\":{\"code\":\"API_ERROR\",\"details\":\"%s\"}}",
+                e.getMessage().replace("\"", "\\\"")
+            );
         }
     }
 
-    /**
-     * Helper method to get the appropriate input stream, handling compressed responses.
-     *
-     * @param conn HttpURLConnection to get stream from
-     * @param isSuccessResponse whether this is a success response (use getInputStream) or error (use getErrorStream)
-     * @return InputStream that handles decompression if needed
-     * @throws IOException if stream cannot be obtained
-     */
-    private InputStream getResponseStream(HttpURLConnection conn, boolean isSuccessResponse) throws IOException {
-        InputStream inputStream = isSuccessResponse ? conn.getInputStream() : conn.getErrorStream();
-
-        // Check if response is gzipped
-        String contentEncoding = conn.getHeaderField("Content-Encoding");
-        if ("gzip".equalsIgnoreCase(contentEncoding)) {
-            return new GZIPInputStream(inputStream);
-        }
-
-        return inputStream;
-    }
-
-    /**
-     * Generates a secret hash using SHA512 for GP API authentication.
-     * The secret is created as SHA512(NONCE + APP-KEY).
-     *
-     * @param nonce The nonce value
-     * @param appKey The application key
-     * @return SHA512 hash as lowercase hex string
-     * @throws NoSuchAlgorithmException If SHA-512 algorithm is not available
-     */
-    private String generateSecret(String nonce, String appKey) throws NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance("SHA-512");
-        md.update(nonce.getBytes(StandardCharsets.UTF_8));
-        byte[] bytes = md.digest(appKey.getBytes(StandardCharsets.UTF_8));
-        StringBuilder sb = new StringBuilder();
-        for (byte aByte : bytes) {
-            sb.append(Integer.toString((aByte & 0xff) + 0x100, 16).substring(1));
-        }
-        return sb.toString();
-    }
-
-    /**
-     * Generates access token using the GP API.
-     * Matches Java SDK GpApiSessionInfo.signIn approach.
-     *
-     * @return Array containing [accessToken, merchantId, accountName]
-     * @throws Exception If token generation fails
-     */
-    private String[] generateAccessToken() throws Exception {
-        // Create credentials for token request
-        String appId = dotenv.get("GP_API_APP_ID");
-        String appKey = dotenv.get("GP_API_APP_KEY");
-
-        // Generate nonce using timestamp format (matches Java SDK)
-        SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss.SSS a");
-        String nonce = dateFormat.format(new Date());
-
-        // Generate secret using SHA512 hash
-        String secret = generateSecret(nonce, appKey);
-
-        String tokenRequestJson = String.format(
-            "{\"app_id\":\"%s\",\"nonce\":\"%s\",\"grant_type\":\"client_credentials\",\"secret\":\"%s\"}",
-            appId, nonce, secret
-        );
-
-        // Make token request
-        URL url = new URL("https://apis.sandbox.globalpay.com/ucp/accesstoken");
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setRequestProperty("X-GP-Api-Key", appKey);
-        conn.setRequestProperty("X-GP-Version", "2021-03-22");
-        conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("Accept-Encoding", "gzip, deflate");
-        conn.setRequestProperty("User-Agent", "PayByLink-Java/1.0");
-        conn.setDoOutput(true);
-
-        // Send request
-        try (OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream())) {
-            writer.write(tokenRequestJson);
-        }
-
-        // Read response
-        int responseCode = conn.getResponseCode();
-        StringBuilder responseBody = new StringBuilder();
-
-        // Use helper method to handle compressed responses
-        boolean isSuccessResponse = (responseCode >= 200 && responseCode < 300);
-        try (InputStream inputStream = getResponseStream(conn, isSuccessResponse);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                responseBody.append(line);
-            }
-        }
-
-        if (responseCode >= 200 && responseCode < 300) {
-            String responseStr = responseBody.toString();
-
-            String accessToken = extractJsonValue(responseStr, "token");
-
-            if (accessToken == null) {
-                // Try alternative field names that might be used
-                accessToken = extractJsonValue(responseStr, "access_token");
-                if (accessToken == null) {
-                    throw new Exception("No access token in response. Full response: " + responseStr);
-                }
-            }
-
-            // Extract additional information if available
-            String merchantId = extractJsonValue(responseStr, "merchant_id");
-            String accountName = extractJsonValue(responseStr, "transaction_processing_account_name");
-            if (accountName == null) {
-                accountName = "paylink"; // Default account name
-            }
-
-            return new String[]{accessToken, merchantId, accountName};
-        } else {
-            String errorResponse = responseBody.toString();
-            throw new Exception("Failed to generate access token (HTTP " + responseCode + "): " + errorResponse);
-        }
-    }
-
-    /**
-     * Simple JSON value extractor for parsing API responses.
-     * Handles basic string value extraction without full JSON parsing library.
-     * Now properly handles whitespace around colons and values.
-     *
-     * @param json JSON string
-     * @param key Key to extract
-     * @return Extracted value or null if not found
-     */
-    private String extractJsonValue(String json, String key) {
-        if (json == null || key == null) {
-            return null;
-        }
-
-        // Look for the key pattern with flexible whitespace: "key" : "value"
-        String keyPattern = "\"" + key + "\"";
-        int keyIndex = json.indexOf(keyPattern);
-        if (keyIndex == -1) {
-            return null;
-        }
-
-        // Move past the key
-        int colonIndex = keyIndex + keyPattern.length();
-
-        // Skip whitespace and find the colon
-        while (colonIndex < json.length() && Character.isWhitespace(json.charAt(colonIndex))) {
-            colonIndex++;
-        }
-
-        if (colonIndex >= json.length() || json.charAt(colonIndex) != ':') {
-            return null;
-        }
-
-        // Move past the colon
-        colonIndex++;
-
-        // Skip whitespace after colon
-        while (colonIndex < json.length() && Character.isWhitespace(json.charAt(colonIndex))) {
-            colonIndex++;
-        }
-
-        if (colonIndex >= json.length()) {
-            return null;
-        }
-
-        // Check if the value is a quoted string
-        if (json.charAt(colonIndex) == '"') {
-            // It's a quoted string - find the closing quote
-            int valueStart = colonIndex + 1;
-            int valueEnd = json.indexOf('"', valueStart);
-            if (valueEnd != -1) {
-                return json.substring(valueStart, valueEnd);
-            }
-        } else {
-            // It's an unquoted value - find the end
-            int valueStart = colonIndex;
-            int valueEnd = valueStart;
-
-            while (valueEnd < json.length()) {
-                char ch = json.charAt(valueEnd);
-                if (ch == ',' || ch == '}' || ch == ']' || ch == '\n' || ch == '\r') {
-                    break;
-                }
-                valueEnd++;
-            }
-
-            if (valueEnd > valueStart) {
-                return json.substring(valueStart, valueEnd).trim();
-            }
-        }
-
-        return null;
-    }
 }
