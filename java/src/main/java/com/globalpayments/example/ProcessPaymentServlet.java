@@ -49,7 +49,7 @@ public class ProcessPaymentServlet extends HttpServlet {
 
     /**
      * Initializes the servlet with GP API settings.
-     * Configures the Global Payments SDK similar to PHP implementation.
+     * Configures the Global Payments SDK.
      */
     @Override
     public void init() throws ServletException {
@@ -67,7 +67,6 @@ public class ProcessPaymentServlet extends HttpServlet {
     /**
      * Configure the Global Payments SDK
      * Sets up the SDK with necessary credentials and settings loaded from environment variables.
-     * Matches the PHP configureSdk() implementation.
      */
     private void configureSdk() throws Exception {
         GpApiConfig config = new GpApiConfig();
@@ -190,7 +189,7 @@ public class ProcessPaymentServlet extends HttpServlet {
 
             String currency = request.getParameter("currency").trim().toUpperCase();
 
-            // Create payment link using SDK (matching PHP approach)
+            // Create payment link using SDK
             String paymentLinkResponse = createPaymentLinkViaSdk(amount, currency, reference, name, description);
 
             response.getWriter().write(paymentLinkResponse);
@@ -216,7 +215,7 @@ public class ProcessPaymentServlet extends HttpServlet {
 
     /**
      * Creates a payment link using the Global Payments SDK.
-     * Matches the PHP implementation approach using PayByLinkService.
+     * Matches the implementation approach using PayByLinkService.
      *
      * @param amount Amount in cents
      * @param currency Currency code
@@ -228,7 +227,7 @@ public class ProcessPaymentServlet extends HttpServlet {
      */
     private String createPaymentLinkViaSdk(int amount, String currency, String reference, String name, String description) throws ApiException {
         try {
-            // Create PayByLinkData object following the test pattern and PHP implementation
+            // Create PayByLinkData request object
             PayByLinkData payByLink = new PayByLinkData();
             payByLink.setType(PayByLinkType.PAYMENT);
             payByLink.setUsageMode(PaymentMethodUsageMode.SINGLE);
@@ -258,7 +257,7 @@ public class ProcessPaymentServlet extends HttpServlet {
             String paymentLink = transactionResponse.getPayByLinkResponse().getUrl();
             String linkId = transactionResponse.getPayByLinkResponse().getId();
 
-            // Return success response matching PHP format
+            // Return success response
             return String.format(
                 "{\"success\":true,\"message\":\"Payment link created successfully! Link ID: %s\",\"data\":{\"paymentLink\":\"%s\",\"linkId\":\"%s\",\"reference\":\"%s\",\"amount\":%d,\"currency\":\"%s\"}}",
                 linkId, paymentLink, linkId, reference, amount, currency
