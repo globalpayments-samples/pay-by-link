@@ -1,13 +1,13 @@
 # Global Payments Java Pay by Link Implementation
 
-A robust Java servlet implementation for creating and managing payment links using the Global Payments API. This Jakarta EE-based web application provides enterprise-grade payment link generation with direct API integration, comprehensive error handling, and modern servlet container deployment capabilities.
+A robust Java servlet implementation for creating and managing payment links using the Global Payments Java SDK. This Jakarta EE-based web application provides enterprise-grade payment link generation with SDK integration, comprehensive error handling, and modern servlet container deployment capabilities.
 
 ## Features
 
 - **Jakarta EE Servlet API**: Built on modern Jakarta EE 9+ specifications (not legacy javax)
+- **Global Payments Java SDK Integration**: Uses official `globalpayments-sdk` for API communication
 - **Embedded Tomcat Deployment**: Maven Cargo plugin with Tomcat 10.x for easy development and testing
-- **Direct HTTP API Integration**: Pure HttpURLConnection implementation without external HTTP libraries
-- **Zero External Dependencies**: Uses built-in Java HTTP client and string manipulation for JSON processing
+- **SDK-Based Implementation**: Leverages `PayByLinkService` and `PayByLinkData` for type-safe operations
 - **Input Validation & Sanitization**: Comprehensive request validation matching PHP implementation patterns
 - **Multi-Currency Support**: Support for EUR, USD, GBP, and other Global Payments supported currencies
 - **Environment Configuration**: Flexible .env-based configuration for sandbox/production environments
@@ -142,7 +142,7 @@ Returns configuration information for the Pay by Link interface.
 
 ### POST /create-payment-link
 
-Creates a new payment link with the specified parameters using direct GP API integration.
+Creates a new payment link with the specified parameters using the Global Payments Java SDK.
 
 **Request Headers**:
 ```
@@ -232,49 +232,70 @@ public class ProcessPaymentServlet extends HttpServlet {
 
     @Override
     public void init() throws ServletException {
-        environment = "sandbox"; // Default to sandbox environment
-        System.out.println("GP API Pay by Link servlet initialized for " + environment + " environment");
+        environment = "sandbox";
+
+        // Configure Global Payments SDK
+        try {
+            configureSdk();
+        } catch (Exception e) {
+            throw new ServletException("Failed to configure Global Payments SDK", e);
+        }
     }
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        // Handle /config endpoint
-    }
+    private void configureSdk() throws Exception {
+        GpApiConfig config = new GpApiConfig();
+        config.setAppId(dotenv.get("GP_API_APP_ID"));
+        config.setAppKey(dotenv.get("GP_API_APP_KEY"));
+        config.setEnvironment(Environment.TEST);
+        config.setChannel(Channel.CardNotPresent);
+        config.setCountry("GB");
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        // Handle /create-payment-link endpoint
+        AccessTokenInfo accessTokenInfo = new AccessTokenInfo();
+        accessTokenInfo.setTransactionProcessingAccountName("paylink");
+        config.setAccessTokenInfo(accessTokenInfo);
+
+        ServicesContainer.configureService(config);
     }
 }
 ```
 
-### Direct HTTP API Integration
+### SDK-Based Payment Link Creation
 
-The implementation uses `HttpURLConnection` for direct API calls without external dependencies:
+The implementation uses the Global Payments Java SDK for type-safe API integration:
 
 ```java
-private String createPaymentLinkViaAPI(int amount, String currency, String reference,
-        String name, String description) throws IOException {
+private String createPaymentLinkViaSdk(int amount, String currency, String reference,
+        String name, String description) throws ApiException {
 
-    // Generate access token first
-    String[] tokenData = generateAccessToken();
-    String accessToken = tokenData[0];
-    String merchantId = tokenData[1];
-    String accountName = tokenData[2];
+    // Create PayByLinkData object
+    PayByLinkData payByLink = new PayByLinkData();
+    payByLink.setType(PayByLinkType.PAYMENT);
+    payByLink.setUsageMode(PaymentMethodUsageMode.SINGLE);
+    payByLink.setAllowedPaymentMethods(new String[]{PaymentMethodName.Card.getValue(Target.GP_API)});
+    payByLink.setUsageLimit(1);
+    payByLink.setName(name);
+    payByLink.isShippable(true);
+    payByLink.setShippingAmount(new BigDecimal("0"));
+    payByLink.setExpirationDate(DateTime.now().plusDays(10));
 
-    // Create API request
-    URL url = new URL("https://apis.sandbox.globalpay.com/ucp/links");
-    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-    conn.setRequestMethod("POST");
-    conn.setRequestProperty("Content-Type", "application/json");
-    conn.setRequestProperty("Authorization", "Bearer " + accessToken);
-    conn.setRequestProperty("X-GP-Version", "2021-03-22");
-    conn.setDoOutput(true);
+    // Set notification URLs
+    payByLink.setReturnUrl("https://www.example.com/returnUrl");
+    payByLink.setStatusUpdateUrl("https://www.example.com/statusUrl");
+    payByLink.setCancelUrl("https://www.example.com/returnUrl");
 
-    // Send payment link creation request
-    // ... request handling code
+    // Create payment link using SDK
+    Transaction response = PayByLinkService
+        .create(payByLink, new BigDecimal(amount).divide(new BigDecimal(100)))
+        .withCurrency(currency)
+        .withClientTransactionId(GenerationUtils.generateRecurringKey())
+        .withDescription(description)
+        .execute();
+
+    // Extract payment link from response
+    String paymentLink = response.getPayByLinkResponse().getUrl();
+    String linkId = response.getPayByLinkResponse().getId();
+
+    // Return formatted JSON response
 }
 ```
 
@@ -323,35 +344,13 @@ try {
 }
 ```
 
-### JSON Processing Without External Libraries
-
-Simple JSON extraction using string manipulation:
-
-```java
-private String extractJsonValue(String json, String key) {
-    String searchPattern = "\"" + key + "\":\"";
-    int startIndex = json.indexOf(searchPattern);
-    if (startIndex == -1) {
-        return null;
-    }
-
-    startIndex += searchPattern.length();
-    int endIndex = json.indexOf("\"", startIndex);
-    if (endIndex == -1) {
-        return null;
-    }
-
-    return json.substring(startIndex, endIndex);
-}
-```
-
 ## Dependencies
 
 ### Core Dependencies
 
 ```xml
 <dependencies>
-    <!-- Global Payments SDK (for reference, using direct API calls) -->
+    <!-- Global Payments Java SDK -->
     <dependency>
         <groupId>com.heartlandpaymentsystems</groupId>
         <artifactId>globalpayments-sdk</artifactId>
@@ -374,6 +373,13 @@ private String extractJsonValue(String json, String key) {
     </dependency>
 </dependencies>
 ```
+
+The Global Payments SDK provides:
+- `PayByLinkService` for payment link operations
+- `PayByLinkData` for type-safe configuration
+- `GpApiConfig` for SDK initialization
+- Automatic authentication and token management
+- Type-safe enums for payment methods, usage modes, etc.
 
 ### Build Configuration
 
@@ -424,65 +430,41 @@ Payment links are created with the following default settings:
 - **Expiration**: 10 days from creation
 - **Shipping**: YES with $0 shipping amount
 
-### Default URLs Configuration
-```java
-String payByLinkJson = String.format(
-    "{" +
-    "\"account_name\":\"%s\"," +
-    "\"type\":\"PAYMENT\"," +
-    "\"usage_mode\":\"SINGLE\"," +
-    "\"usage_limit\":1," +
-    "\"reference\":\"%s\"," +
-    "\"name\":\"%s\"," +
-    "\"description\":\"%s\"," +
-    "\"shippable\":\"YES\"," +
-    "\"shipping_amount\":0," +
-    "\"expiration_date\":\"%s\"," +
-    "\"transactions\":{" +
-        "\"allowed_payment_methods\":[\"CARD\"]," +
-        "\"channel\":\"CNP\"," +
-        "\"country\":\"GB\"," +
-        "\"amount\":%d," +
-        "\"currency\":\"%s\"" +
-    "}," +
-    "\"notifications\":{" +
-        "\"return_url\":\"https://www.example.com/returnUrl\"," +
-        "\"status_url\":\"https://www.example.com/statusUrl\"," +
-        "\"cancel_url\":\"https://www.example.com/returnUrl\"" +
-    "}" +
-    "}",
-    accountName, reference, name, description, expirationDate, amount, currency
-);
-```
-
-### Expiration Date Formatting
+These settings are configured through the SDK's `PayByLinkData` object:
 
 ```java
-private String getExpirationDate() {
-    Calendar calendar = Calendar.getInstance();
-    calendar.add(Calendar.DAY_OF_MONTH, 10);
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-    return sdf.format(calendar.getTime());
-}
+PayByLinkData payByLink = new PayByLinkData();
+payByLink.setType(PayByLinkType.PAYMENT);
+payByLink.setUsageMode(PaymentMethodUsageMode.SINGLE);
+payByLink.setAllowedPaymentMethods(new String[]{PaymentMethodName.Card.getValue(Target.GP_API)});
+payByLink.setUsageLimit(1);
+payByLink.isShippable(true);
+payByLink.setShippingAmount(new BigDecimal("0"));
+payByLink.setExpirationDate(DateTime.now().plusDays(10));
 ```
 
 ## Development vs Production
 
 ### Development Configuration
 
-The servlet defaults to sandbox environment:
+The servlet defaults to sandbox environment with SDK configuration:
 
 ```java
-@Override
-public void init() throws ServletException {
-    environment = "sandbox"; // Default to sandbox/test environment
-    System.out.println("GP API Pay by Link servlet initialized for " + environment + " environment");
+private void configureSdk() throws Exception {
+    GpApiConfig config = new GpApiConfig();
+    config.setAppId(dotenv.get("GP_API_APP_ID"));
+    config.setAppKey(dotenv.get("GP_API_APP_KEY"));
+    config.setEnvironment(Environment.TEST); // Sandbox/test environment
+    config.setChannel(Channel.CardNotPresent);
+    config.setCountry("GB");
+
+    AccessTokenInfo accessTokenInfo = new AccessTokenInfo();
+    accessTokenInfo.setTransactionProcessingAccountName("paylink");
+    config.setAccessTokenInfo(accessTokenInfo);
+
+    ServicesContainer.configureService(config);
 }
 ```
-
-Sandbox API endpoints:
-- Token URL: `https://apis.sandbox.globalpay.com/ucp/accesstoken`
-- Links URL: `https://apis.sandbox.globalpay.com/ucp/links`
 
 ### Production Configuration
 
@@ -495,20 +477,12 @@ For production deployment:
    GP_API_ENVIRONMENT=production
    ```
 
-2. **Update API Endpoints** (modify servlet code):
+2. **Update SDK Configuration**:
    ```java
-   // Change URLs to production endpoints
-   URL tokenUrl = new URL("https://apis.globalpay.com/ucp/accesstoken");
-   URL linksUrl = new URL("https://apis.globalpay.com/ucp/links");
+   config.setEnvironment(Environment.PRODUCTION); // Change to production
    ```
 
-3. **Update Environment Response**:
-   ```java
-   String jsonResponse = String.format(
-       "{\"success\":true,\"data\":{\"environment\":\"%s\",\"supportedCurrencies\":[\"EUR\",\"USD\",\"GBP\"],\"supportedPaymentMethods\":[\"CARD\"]}}",
-       "production" // Changed from "sandbox"
-   );
-   ```
+The SDK handles all API endpoint routing automatically based on the environment setting.
 
 ### Production Build
 
@@ -531,17 +505,23 @@ The servlet implements comprehensive error handling following Java enterprise pa
 
 ```java
 try {
-    // Payment link creation logic
-    String paymentLinkResponse = createPaymentLinkViaAPI(amount, currency, reference, name, description);
+    // Payment link creation using SDK
+    String paymentLinkResponse = createPaymentLinkViaSdk(amount, currency, reference, name, description);
     response.getWriter().write(paymentLinkResponse);
 
-} catch (Exception e) {
-    System.err.println("Payment link creation failed: " + e.getMessage());
-    e.printStackTrace();
-
-    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+} catch (ApiException e) {
+    // Handle API-specific errors
+    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
     String errorResponse = String.format(
         "{\"success\":false,\"message\":\"Payment link creation failed\",\"error\":{\"code\":\"API_ERROR\",\"details\":\"%s\"}}",
+        e.getMessage().replace("\"", "\\\"")
+    );
+    response.getWriter().write(errorResponse);
+} catch (Exception e) {
+    // Handle other errors
+    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    String errorResponse = String.format(
+        "{\"success\":false,\"message\":\"Payment link creation failed\",\"error\":{\"code\":\"INTERNAL_ERROR\",\"details\":\"%s\"}}",
         e.getMessage().replace("\"", "\\\"")
     );
     response.getWriter().write(errorResponse);

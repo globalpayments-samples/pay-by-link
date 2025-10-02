@@ -1,13 +1,13 @@
 # Global Payments .NET Pay by Link Implementation
 
-A modern ASP.NET Core 9.0 implementation for creating and managing payment links using the Global Payments API. This lightweight application leverages Minimal APIs for high-performance payment link generation with direct HTTP API integration, comprehensive validation, and production-ready error handling.
+A modern ASP.NET Core 9.0 implementation for creating and managing payment links using the Global Payments .NET SDK. This lightweight application leverages Minimal APIs for high-performance payment link generation with SDK integration, comprehensive validation, and production-ready error handling.
 
 ## Features
 
 - **ASP.NET Core 9.0**: Built on the latest .NET framework with Minimal APIs for optimal performance
+- **Global Payments .NET SDK Integration**: Uses official `GlobalPayments.Api` NuGet package for API communication
 - **Minimal API Architecture**: Lightweight, high-performance endpoints without MVC overhead
-- **Direct HTTP Integration**: Native HttpClient with HttpRequestMessage for direct GP API communication
-- **System.Text.Json**: Built-in JSON serialization with custom attribute mapping
+- **SDK-Based Implementation**: Leverages `PayByLinkService` and `PayByLinkData` for type-safe operations
 - **Environment Configuration**: .env file support with DotEnv.Net for flexible deployment
 - **Input Validation & Sanitization**: Comprehensive request validation with C# pattern matching
 - **Multi-Currency Support**: Support for EUR, USD, GBP, and other Global Payments currencies
