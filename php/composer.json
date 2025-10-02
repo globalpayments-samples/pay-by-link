@@ -1,13 +1,23 @@
 {
-    "name": "shane/php",
+    "name": "globalpayments/pay-by-link-php",
+    "description": "Global Payments Pay by Link implementation in PHP",
     "require": {
-        "globalpayments/php-sdk": "^13.1",
-        "vlucas/phpdotenv": "^5.5"
+        "php": ">=8.0",
+        "globalpayments/php-sdk": "^13.3",
+        "vlucas/phpdotenv": "^5.5",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "GlobalPayments\\PayByLink\\": "src/"
+        }
     },
     "authors": [
         {
-            "name": "Shane Logsdon",
-            "email": "shane@shanelogsdon.com"
+            "name": "Global Payments",
+            "email": "developer@globalpay.com"
         }
-    ]
+    ],
+    "license": "MIT"
 }

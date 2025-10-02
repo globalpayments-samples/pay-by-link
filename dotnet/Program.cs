@@ -1,191 +1,499 @@
-using GlobalPayments.Api;
-using GlobalPayments.Api.Entities;
-using GlobalPayments.Api.PaymentMethods;
 using dotenv.net;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
-namespace CardPaymentSample;
+namespace PayByLinkSample;
 
 /// <summary>
-/// Card Payment Processing Application
-/// 
-/// This application demonstrates card payment processing using the Global Payments SDK.
-/// It provides endpoints for configuration and payment processing, handling tokenized
-/// card data to ensure secure payment processing.
+/// Pay by Link Processing Application
+///
+/// This application demonstrates payment link creation using the Global Payments API.
+/// It provides endpoints for payment link creation, handling
+/// form data to create secure payment links that can be shared with customers.
 /// </summary>
 public class Program
 {
+    private static readonly HttpClient HttpClient = new HttpClient(new HttpClientHandler()
+    {
+        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+    });
+
     public static void Main(string[] args)
     {
         // Load environment variables from .env file
         DotEnv.Load();
 
         var builder = WebApplication.CreateBuilder(args);
-        
+
         var app = builder.Build();
 
-        // Configure static file serving for the payment form
+        // Enable static file serving
         app.UseDefaultFiles();
         app.UseStaticFiles();
-        
-        // Configure the SDK on startup
-        ConfigureGlobalPaymentsSDK();
 
         ConfigureEndpoints(app);
-        
+
         var port = System.Environment.GetEnvironmentVariable("PORT") ?? "8000";
         app.Urls.Add($"http://0.0.0.0:{port}");
-        
+
         app.Run();
     }
 
     /// <summary>
-    /// Configures the Global Payments SDK with necessary credentials and settings.
-    /// This must be called before processing any payments.
+    /// Configures the application's HTTP endpoints.
     /// </summary>
-    private static void ConfigureGlobalPaymentsSDK()
-    {
-        ServicesContainer.ConfigureService(new PorticoConfig
-        {
-            SecretApiKey = System.Environment.GetEnvironmentVariable("SECRET_API_KEY"),
-            DeveloperId = "000000",
-            VersionNumber = "0000",
-            ServiceUrl = "https://cert.api2.heartlandportico.com"
-        });
-    }
-
-    /// <summary>
-    /// Configures the application's HTTP endpoints for payment processing.
-    /// </summary>
-    /// <param name="app">The web application to configure</param>
+    /// <param name="app">The web application instance</param>
     private static void ConfigureEndpoints(WebApplication app)
     {
-        // Configure HTTP endpoints
+        // Set up HTTP endpoints
         app.MapGet("/config", () => Results.Ok(new
-        { 
+        {
             success = true,
             data = new {
-                publicApiKey = System.Environment.GetEnvironmentVariable("PUBLIC_API_KEY")
+                environment = "sandbox",
+                supportedCurrencies = new[] { "EUR", "USD", "GBP" },
+                supportedPaymentMethods = new[] { "CARD" }
             }
         }));
 
-        ConfigurePaymentEndpoint(app);
+        ConfigurePaymentLinkEndpoint(app);
     }
 
     /// <summary>
-    /// Sanitizes postal code input by removing invalid characters.
+    /// Sanitizes reference string by removing potentially harmful characters.
     /// </summary>
-    /// <param name="postalCode">The postal code to sanitize. Can be null.</param>
+    /// <param name="reference">The reference to sanitize. Can be null.</param>
     /// <returns>
-    /// A sanitized postal code containing only alphanumeric characters and hyphens,
-    /// limited to 10 characters. Returns empty string if input is null or empty.
+    /// A sanitized reference containing only alphanumeric characters, spaces, hyphens, and hash,
+    /// limited to 100 characters. Returns empty string if input is null or empty.
     /// </returns>
-    private static string SanitizePostalCode(string postalCode)
+    private static string SanitizeReference(string? reference)
     {
-        if (string.IsNullOrEmpty(postalCode)) return string.Empty;
-        
-        // Remove any characters that aren't alphanumeric or hyphen
-        var sanitized = new string(postalCode.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
-        
-        // Limit length to 10 characters
-        return sanitized.Length > 10 ? sanitized[..10] : sanitized;
+        if (string.IsNullOrEmpty(reference)) return string.Empty;
+
+        // Remove any characters that aren't alphanumeric, spaces, hyphens, or hash
+        var sanitized = Regex.Replace(reference, @"[^\w\s\-#]", "");
+
+        // Limit length to 100 characters
+        return sanitized.Length > 100 ? sanitized[..100] : sanitized;
     }
 
     /// <summary>
-    /// Configures the payment processing endpoint that handles card transactions.
+    /// Generates a secret hash using SHA512 for GP API authentication.
+    /// The secret is created as SHA512(NONCE + APP-KEY).
     /// </summary>
-    /// <param name="app">The web application to configure</param>
-    private static void ConfigurePaymentEndpoint(WebApplication app)
+    /// <param name="nonce">The nonce value</param>
+    /// <param name="appKey">The application key</param>
+    /// <returns>SHA512 hash as lowercase hex string</returns>
+    private static string GenerateSecret(string nonce, string appKey)
     {
-        app.MapPost("/process-payment", async (HttpContext context) =>
+        var data = Encoding.UTF8.GetBytes(nonce + appKey);
+
+        using var sha512 = SHA512.Create();
+        var hash = sha512.ComputeHash(data);
+
+        var sb = new StringBuilder(128);
+        foreach (var b in hash)
         {
-            // Parse form data from the request
-            var form = await context.Request.ReadFormAsync();
-            var billingZip = form["billing_zip"].ToString();
-            var token = form["payment_token"].ToString();
-            var amountStr = form["amount"].ToString();
+            sb.Append(b.ToString("X2"));
+        }
 
-            // Validate required fields are present
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(billingZip) || string.IsNullOrEmpty(amountStr))
-            {
-                return Results.BadRequest(new {
-                    success = false,
-                    message = "Payment processing failed",
-                    error = new {
-                        code = "VALIDATION_ERROR",
-                        details = "Missing required fields"
-                    }
-                });
-            }
+        return sb.ToString().ToLower();
+    }
 
-            // Validate and parse amount
-            if (!decimal.TryParse(amountStr, out var amount) || amount <= 0)
-            {
-                return Results.BadRequest(new {
-                    success = false,
-                    message = "Payment processing failed",
-                    error = new {
-                        code = "VALIDATION_ERROR",
-                        details = "Amount must be a positive number"
-                    }
-                });
-            }
+    /// <summary>
+    /// Generates an access token for GP API using app credentials.
+    /// </summary>
+    /// <returns>GP API token response</returns>
+    private static async Task<GpApiTokenResponse?> GenerateAccessToken()
+    {
+        var appId = System.Environment.GetEnvironmentVariable("GP_API_APP_ID");
+        var appKey = System.Environment.GetEnvironmentVariable("GP_API_APP_KEY");
 
-            // Initialize payment data using tokenized card information
-            var card = new CreditCardData
-            {
-                Token = token
-            };
+        if (string.IsNullOrEmpty(appId) || string.IsNullOrEmpty(appKey))
+        {
+            throw new InvalidOperationException("Missing GP_API_APP_ID or GP_API_APP_KEY environment variables");
+        }
 
-            // Create billing address for AVS verification
-            var address = new Address
-            {
-                PostalCode = SanitizePostalCode(billingZip)
-            };
+        var nonce = DateTime.UtcNow.ToString("MM/dd/yyyy hh:mm:ss.fff tt");
 
+        var tokenRequest = new GpApiTokenRequest
+        {
+            AppId = appId,
+            Nonce = nonce,
+            GrantType = "client_credentials",
+            Secret = GenerateSecret(nonce, appKey)
+        };
+
+        var requestJson = JsonSerializer.Serialize(tokenRequest);
+        var content = new StringContent(requestJson, System.Text.Encoding.UTF8, "application/json");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "https://apis.sandbox.globalpay.com/ucp/accesstoken");
+        request.Content = content;
+        request.Headers.Add("X-GP-Api-Key", appKey);
+        request.Headers.Add("X-GP-Version", "2021-03-22");
+        request.Headers.Add("Accept", "application/json");
+        request.Headers.Add("User-Agent", "PayByLink-DotNet/1.0");
+
+        var response = await HttpClient.SendAsync(request);
+        var responseContent = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException($"Token request failed with status {response.StatusCode}: {responseContent}");
+        }
+
+        return JsonSerializer.Deserialize<GpApiTokenResponse>(responseContent);
+    }
+
+    /// <summary>
+    /// Creates a payment link via direct GP API call.
+    /// </summary>
+    /// <param name="paymentLinkData">Payment link data</param>
+    /// <param name="accessToken">Access token for authentication</param>
+    /// <returns>Payment link response</returns>
+    private static async Task<GpApiLinkResponse?> CreatePaymentLink(PaymentLinkData paymentLinkData, string accessToken)
+    {
+        var requestJson = JsonSerializer.Serialize(paymentLinkData, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        });
+
+        var content = new StringContent(requestJson, System.Text.Encoding.UTF8, "application/json");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "https://apis.sandbox.globalpay.com/ucp/links");
+        request.Content = content;
+        request.Headers.Add("Authorization", $"Bearer {accessToken}");
+        request.Headers.Add("X-GP-Version", "2021-03-22");
+        request.Headers.Add("Accept", "application/json");
+        request.Headers.Add("User-Agent", "PayByLink-DotNet/1.0");
+
+        var response = await HttpClient.SendAsync(request);
+        var responseContent = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            // Try to parse error response for better error details
+            string errorMsg;
             try
             {
-                // Process the payment transaction using the provided amount
-                var response = card.Charge(amount)
-                    .WithAllowDuplicates(true)
-                    .WithCurrency("USD")
-                    .WithAddress(address)
-                    .Execute();
+                using var errorDoc = JsonDocument.Parse(responseContent);
+                if (errorDoc.RootElement.TryGetProperty("error_description", out var errorDesc))
+                {
+                    errorMsg = errorDesc.GetString() ?? responseContent;
+                }
+                else if (errorDoc.RootElement.TryGetProperty("message", out var message))
+                {
+                    errorMsg = message.GetString() ?? responseContent;
+                }
+                else
+                {
+                    errorMsg = responseContent;
+                }
+            }
+            catch
+            {
+                errorMsg = responseContent;
+            }
 
-                // Verify transaction was successful
-                if (response.ResponseCode != "00")
+            throw new InvalidOperationException($"Payment link creation failed with status {response.StatusCode}: {errorMsg}");
+        }
+
+        return JsonSerializer.Deserialize<GpApiLinkResponse>(responseContent);
+    }
+
+    /// <summary>
+    /// Sets up the payment link creation endpoint.
+    /// </summary>
+    /// <param name="app">The web application instance</param>
+    private static void ConfigurePaymentLinkEndpoint(WebApplication app)
+    {
+        app.MapPost("/create-payment-link", async (HttpContext context) =>
+        {
+            try
+            {
+                // Parse form data from the request
+                var form = await context.Request.ReadFormAsync();
+
+                // Validate required fields
+                string[] requiredFields = ["amount", "currency", "reference", "name", "description"];
+                var missingFields = requiredFields.Where(field => string.IsNullOrEmpty(form[field])).ToList();
+
+                if (missingFields.Any())
                 {
                     return Results.BadRequest(new {
                         success = false,
-                        message = "Payment processing failed",
+                        message = "Payment link creation failed",
                         error = new {
-                            code = "PAYMENT_DECLINED",
-                            details = response.ResponseMessage
+                            code = "MISSING_REQUIRED_FIELDS",
+                            details = $"Missing required fields. Received: {string.Join(", ", form.Keys)}"
                         }
                     });
                 }
 
-                // Return success response with transaction ID
+                // Parse and validate amount
+                if (!int.TryParse(form["amount"], out var amount) || amount <= 0)
+                {
+                    return Results.BadRequest(new {
+                        success = false,
+                        message = "Payment link creation failed",
+                        error = new {
+                            code = "INVALID_AMOUNT",
+                            details = "Invalid amount"
+                        }
+                    });
+                }
+
+                // Sanitize and prepare data
+                var reference = SanitizeReference(form["reference"]);
+                var name = form["name"].ToString().Trim();
+                if (name.Length > 100) name = name[..100];
+
+                var description = form["description"].ToString().Trim();
+                if (description.Length > 500) description = description[..500];
+
+                var currency = form["currency"].ToString().Trim().ToUpper();
+
+                // Generate access token
+                var tokenResponse = await GenerateAccessToken();
+                if (tokenResponse == null)
+                {
+                    return Results.BadRequest(new {
+                        success = false,
+                        message = "Payment link creation failed",
+                        error = new {
+                            code = "TOKEN_GENERATION_ERROR",
+                            details = "Failed to generate access token"
+                        }
+                    });
+                }
+
+                // Set account name from token response or default to "paylink"
+                var accountName = !string.IsNullOrEmpty(tokenResponse.TransactionProcessingAccountName)
+                    ? tokenResponse.TransactionProcessingAccountName
+                    : "paylink";
+
+                // Create PayByLink data object
+                var expirationDate = DateTime.Now.AddDays(10).ToString("yyyy-MM-dd HH:mm:ss");
+
+                var payByLinkData = new PaymentLinkData
+                {
+                    AccountName = accountName,
+                    Type = "PAYMENT",  // PayByLinkType::PAYMENT
+                    UsageMode = "SINGLE",   // PaymentMethodUsageMode::SINGLE
+                    UsageLimit = 1,          // usageLimit = 1
+                    Reference = reference,
+                    Name = name,
+                    Description = description,
+                    Shippable = "YES",
+                    ShippingAmount = 0,         // shippingAmount = 0
+                    ExpirationDate = expirationDate, // +10 days
+                    Transactions = new PaymentLinkTransactions
+                    {
+                        AllowedPaymentMethods = ["CARD"], // allowedPaymentMethods = [PaymentMethodName::CARD]
+                        Channel = "CNP",             // Card Not Present
+                        Country = "GB",
+                        Amount = amount,            // Amount in cents
+                        Currency = currency
+                    },
+                    Notifications = new PaymentLinkNotifications
+                    {
+                        ReturnUrl = "https://www.example.com/returnUrl",  // returnUrl
+                        StatusUrl = "https://www.example.com/statusUrl",  // statusUpdateUrl
+                        CancelUrl = "https://www.example.com/returnUrl"   // cancelUrl
+                    }
+                };
+
+                // Add merchant_id if available
+                if (!string.IsNullOrEmpty(tokenResponse.MerchantId))
+                {
+                    payByLinkData.MerchantId = tokenResponse.MerchantId;
+                }
+
+                // Create payment link via GP API
+                var linkResponse = await CreatePaymentLink(payByLinkData, tokenResponse.Token);
+                if (linkResponse == null || string.IsNullOrEmpty(linkResponse.Url))
+                {
+                    return Results.BadRequest(new {
+                        success = false,
+                        message = "Payment link creation failed",
+                        error = new {
+                            code = "INVALID_RESPONSE",
+                            details = "No payment link URL in response"
+                        }
+                    });
+                }
+
+                // Return success response
                 return Results.Ok(new
                 {
                     success = true,
-                    message = $"Payment successful! Transaction ID: {response.TransactionId}",
+                    message = $"Payment link created successfully! Link ID: {linkResponse.Id}",
                     data = new {
-                        transactionId = response.TransactionId
+                        paymentLink = linkResponse.Url,
+                        linkId = linkResponse.Id,
+                        reference = reference,
+                        amount = amount,
+                        currency = currency
                     }
                 });
-            } 
-            catch (ApiException ex)
+            }
+            catch (Exception ex)
             {
-                // Handle payment processing errors
+                // Determine error code based on exception type/message
+                string errorCode = "UNKNOWN_ERROR";
+                if (ex.Message.Contains("Failed to generate access token") || ex.Message.Contains("Token request failed"))
+                {
+                    errorCode = "TOKEN_GENERATION_ERROR";
+                }
+                else if (ex.Message.Contains("Payment link creation failed") || ex.Message.Contains("Invalid response"))
+                {
+                    errorCode = "API_ERROR";
+                }
+
                 return Results.BadRequest(new {
                     success = false,
-                    message = "Payment processing failed",
+                    message = "Payment link creation failed",
                     error = new {
-                        code = "API_ERROR",
+                        code = errorCode,
                         details = ex.Message
                     }
                 });
             }
         });
     }
+}
+
+// Data models for GP API communication
+public class GpApiTokenRequest
+{
+    [JsonPropertyName("app_id")]
+    public string AppId { get; set; } = "";
+
+    [JsonPropertyName("nonce")]
+    public string Nonce { get; set; } = "";
+
+    [JsonPropertyName("grant_type")]
+    public string GrantType { get; set; } = "";
+
+    [JsonPropertyName("secret")]
+    public string Secret { get; set; } = "";
+}
+
+public class GpApiTokenResponse
+{
+    [JsonPropertyName("token")]
+    public string Token { get; set; } = "";
+
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "";
+
+    [JsonPropertyName("app_id")]
+    public string AppId { get; set; } = "";
+
+    [JsonPropertyName("app_name")]
+    public string AppName { get; set; } = "";
+
+    [JsonPropertyName("time_created")]
+    public string TimeCreated { get; set; } = "";
+
+    [JsonPropertyName("seconds_to_expire")]
+    public int SecondsToExpire { get; set; }
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = "";
+
+    [JsonPropertyName("merchant_id")]
+    public string MerchantId { get; set; } = "";
+
+    [JsonPropertyName("merchant_name")]
+    public string MerchantName { get; set; } = "";
+
+    [JsonPropertyName("transaction_processing_account_name")]
+    public string TransactionProcessingAccountName { get; set; } = "";
+}
+
+public class PaymentLinkData
+{
+    [JsonPropertyName("account_name")]
+    public string AccountName { get; set; } = "";
+
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "";
+
+    [JsonPropertyName("usage_mode")]
+    public string UsageMode { get; set; } = "";
+
+    [JsonPropertyName("usage_limit")]
+    public int UsageLimit { get; set; }
+
+    [JsonPropertyName("reference")]
+    public string Reference { get; set; } = "";
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = "";
+
+    [JsonPropertyName("shippable")]
+    public string Shippable { get; set; } = "";
+
+    [JsonPropertyName("shipping_amount")]
+    public int ShippingAmount { get; set; }
+
+    [JsonPropertyName("expiration_date")]
+    public string ExpirationDate { get; set; } = "";
+
+    [JsonPropertyName("transactions")]
+    public PaymentLinkTransactions Transactions { get; set; } = new();
+
+    [JsonPropertyName("notifications")]
+    public PaymentLinkNotifications Notifications { get; set; } = new();
+
+    [JsonPropertyName("merchant_id")]
+    public string? MerchantId { get; set; }
+}
+
+public class PaymentLinkTransactions
+{
+    [JsonPropertyName("allowed_payment_methods")]
+    public string[] AllowedPaymentMethods { get; set; } = [];
+
+    [JsonPropertyName("channel")]
+    public string Channel { get; set; } = "";
+
+    [JsonPropertyName("country")]
+    public string Country { get; set; } = "";
+
+    [JsonPropertyName("amount")]
+    public int Amount { get; set; }
+
+    [JsonPropertyName("currency")]
+    public string Currency { get; set; } = "";
+}
+
+public class PaymentLinkNotifications
+{
+    [JsonPropertyName("return_url")]
+    public string ReturnUrl { get; set; } = "";
+
+    [JsonPropertyName("status_url")]
+    public string StatusUrl { get; set; } = "";
+
+    [JsonPropertyName("cancel_url")]
+    public string CancelUrl { get; set; } = "";
+}
+
+public class GpApiLinkResponse
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = "";
+
+    [JsonPropertyName("url")]
+    public string Url { get; set; } = "";
 }
