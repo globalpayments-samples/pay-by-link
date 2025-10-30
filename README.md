@@ -4,12 +4,12 @@ This repository provides comprehensive **Pay by Link** implementations using the
 
 ## Available Implementations
 
-- **[.NET Core](./dotnet/)** - ASP.NET Core web application using Global Payments .NET SDK
-- **[Go](./go/)** - Native Go HTTP server with direct API integration
-- **[Java](./java/)** - Jakarta EE servlet-based web application using Global Payments Java SDK
-- **[Node.js](./nodejs/)** - Express.js web application with direct API calls
-- **[PHP](./php/)** - Native PHP implementation using Global Payments PHP SDK
-- **[Python](./python/)** - Flask web application with direct API calls
+- [.NET Core](./dotnet/) - ([Preview](https://githubbox.com/globalpayments-samples/pay-by-link/tree/main/dotnet)) - ASP.NET Core web application
+- [Go](./go/) - ([Preview](https://githubbox.com/globalpayments-samples/pay-by-link/tree/main/go)) - Go HTTP server application
+- [Java](./java/) - ([Preview](https://githubbox.com/globalpayments-samples/pay-by-link/tree/main/java)) - Jakarta EE servlet-based web application
+- [Node.js](./nodejs/) - ([Preview](https://githubbox.com/globalpayments-samples/pay-by-link/tree/main/nodejs)) - Express.js web application
+- [PHP](./php/) - ([Preview](https://githubbox.com/globalpayments-samples/pay-by-link/tree/main/php)) - PHP web application
+- [Python](./python/) - ([Preview](https://githubbox.com/globalpayments-samples/pay-by-link/tree/main/python)) - Flask web application
 
 ## Features
 
