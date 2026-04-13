@@ -317,8 +317,8 @@ Each implementation includes try-catch blocks with specific error categorization
 
 For questions about this implementation or Global Payments integration:
 
-1. **Global Payments Documentation:** [developer.globalpay.com](https://developer.globalpay.com)
-2. **GP API Reference:** [GP API Documentation](https://developer.globalpay.com/api)
+1. **Global Payments Documentation:** [developer.globalpayments.com](https://developer.globalpayments.com)
+2. **GP API Reference:** [GP API Documentation](https://developer.globalpayments.com/api/references-overview)
 3. **Technical Support:** Contact your Global Payments integration specialist
 
 ## License

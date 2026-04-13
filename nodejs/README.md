@@ -496,7 +496,7 @@ app.use((req, res, next) => {
 
 ## Support
 
-- **Documentation**: [Global Payments Developer Portal](https://developer.globalpay.com/)
-- **API Reference**: [Global Payments API Documentation](https://developer.globalpay.com/api)
+- **Documentation**: [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- **API Reference**: [Global Payments API Documentation](https://developer.globalpayments.com/api/references-overview)
 - **Node.js SDK**: [Node.js SDK Repository](https://github.com/globalpayments/node-sdk)
 - **Express.js Documentation**: [Express.js Guide](https://expressjs.com/)

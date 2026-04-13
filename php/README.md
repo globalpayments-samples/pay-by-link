@@ -315,6 +315,6 @@ Check application logs in the `logs/` directory for:
 
 ## Support
 
-- **Documentation**: [Global Payments Developer Portal](https://developer.globalpay.com/)
-- **API Reference**: [Global Payments API Documentation](https://developer.globalpay.com/api)
+- **Documentation**: [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- **API Reference**: [Global Payments API Documentation](https://developer.globalpayments.com/api/references-overview)
 - **SDK Documentation**: [PHP SDK Repository](https://github.com/globalpayments/php-sdk)

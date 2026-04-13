@@ -601,8 +601,8 @@ curl -X POST http://localhost:8000/create-payment-link \
 
 ## Support
 
-- **Global Payments Documentation**: [Global Payments Developer Portal](https://developer.globalpay.com/)
-- **API Reference**: [Global Payments API Documentation](https://developer.globalpay.com/api)
+- **Global Payments Documentation**: [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- **API Reference**: [Global Payments API Documentation](https://developer.globalpayments.com/api/references-overview)
 - **Jakarta EE Documentation**: [Jakarta EE Platform Documentation](https://jakarta.ee/specifications/)
 - **Maven Documentation**: [Apache Maven Project](https://maven.apache.org/guides/)
 - **Tomcat Documentation**: [Apache Tomcat Documentation](https://tomcat.apache.org/tomcat-10.1-doc/)
