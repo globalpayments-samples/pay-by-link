@@ -193,6 +193,15 @@ Creates a new payment link. **Required fields:**
 }
 ```
 
+## Test Cards
+
+| Brand | Number | CVV | Expiry |
+|-------|--------|-----|--------|
+| Visa | 4263 9826 4026 9299 | 123 | Any future |
+| Mastercard | 5425 2334 2424 1200 | 123 | Any future |
+
+> Pay by Link generates a hosted payment page. Test cards work when completing payment through the generated link in sandbox mode.
+
 ## Payment Link Configuration
 
 All implementations create payment links with these settings:
