@@ -606,3 +606,13 @@ curl -X POST http://localhost:8000/create-payment-link \
 - **Jakarta EE Documentation**: [Jakarta EE Platform Documentation](https://jakarta.ee/specifications/)
 - **Maven Documentation**: [Apache Maven Project](https://maven.apache.org/guides/)
 - **Tomcat Documentation**: [Apache Tomcat Documentation](https://tomcat.apache.org/tomcat-10.1-doc/)
+
+---
+
+## Resources
+
+- [Parent Project README](../README.md)
+- [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- [API Reference](https://developer.globalpayments.com/api/references-overview)
+- [Java SDK](https://github.com/globalpayments/java-sdk)
+- [Test Cards](https://developer.globalpayments.com/resources/test-cards)

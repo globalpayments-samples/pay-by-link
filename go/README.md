@@ -735,3 +735,12 @@ func getEnvironment() Environment {
 - **API Reference**: [Global Payments API Documentation](https://developer.globalpayments.com/api/references-overview)
 - **Go Documentation**: [Go Language Documentation](https://golang.org/doc/)
 - **HTTP Package**: [net/http Package Documentation](https://pkg.go.dev/net/http)
+
+---
+
+## Resources
+
+- [Parent Project README](../README.md)
+- [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- [API Reference](https://developer.globalpayments.com/api/references-overview)
+- [Test Cards](https://developer.globalpayments.com/resources/test-cards)
