@@ -322,13 +322,15 @@ All implementations return identical JSON response formats to ensure consistent 
 
 Each implementation includes try-catch blocks with specific error categorization, ensuring consistent error reporting and debugging capabilities.
 
-## Support
+## Community
 
-For questions about this implementation or Global Payments integration:
+- 🌐 **Developer Portal** — [developer.globalpayments.com](https://developer.globalpayments.com)
+- 💬 **Discord** — [Join the community](https://discord.gg/myER9G9qkc)
+- 📋 **GitHub Discussions** — [github.com/globalpayments-samples](https://github.com/globalpayments-samples)
+- 📧 **Newsletter** — [Subscribe](https://www.globalpayments.com/en-gb/modals/newsletter)
+- 💼 **LinkedIn** — [Global Payments for Developers](https://www.linkedin.com/showcase/global-payments-for-developers/posts/?feedView=all)
 
-1. **Global Payments Documentation:** [developer.globalpayments.com](https://developer.globalpayments.com)
-2. **GP API Reference:** [GP API Documentation](https://developer.globalpayments.com/api/references-overview)
-3. **Technical Support:** Contact your Global Payments integration specialist
+Have a question or found a bug? [Open an issue](https://github.com/globalpayments-samples/pay-by-link/issues) or reach out at [communityexperience@globalpay.com](mailto:communityexperience@globalpay.com).
 
 ## License
 
