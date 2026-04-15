@@ -943,9 +943,18 @@ pip freeze > requirements-dev.txt  # Include development dependencies
 
 ## Support
 
-- **Global Payments Documentation**: [Global Payments Developer Portal](https://developer.globalpay.com/)
-- **API Reference**: [Global Payments API Documentation](https://developer.globalpay.com/api)
+- **Global Payments Documentation**: [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- **API Reference**: [Global Payments API Documentation](https://developer.globalpayments.com/api/references-overview)
 - **Flask Documentation**: [Flask Official Documentation](https://flask.palletsprojects.com/)
 - **Python Requests**: [Requests Documentation](https://docs.python-requests.org/)
 - **Python Virtual Environments**: [Python venv Documentation](https://docs.python.org/3/tutorial/venv.html)
 - **Gunicorn Deployment**: [Gunicorn Documentation](https://gunicorn.org/)
+
+---
+
+## Resources
+
+- [Parent Project README](../README.md)
+- [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- [API Reference](https://developer.globalpayments.com/api/references-overview)
+- [Test Cards](https://developer.globalpayments.com/resources/test-cards)

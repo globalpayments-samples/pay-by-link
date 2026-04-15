@@ -712,8 +712,18 @@ dotnet run --configuration Release
 
 ## Support
 
-- **Global Payments Documentation**: [Global Payments Developer Portal](https://developer.globalpay.com/)
-- **API Reference**: [Global Payments API Documentation](https://developer.globalpay.com/api)
+- **Global Payments Documentation**: [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- **API Reference**: [Global Payments API Documentation](https://developer.globalpayments.com/api/references-overview)
 - **.NET Documentation**: [Microsoft .NET Documentation](https://docs.microsoft.com/en-us/dotnet/)
 - **ASP.NET Core Documentation**: [ASP.NET Core Documentation](https://docs.microsoft.com/en-us/aspnet/core/)
 - **Minimal APIs Guide**: [ASP.NET Core Minimal APIs](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis)
+
+---
+
+## Resources
+
+- [Parent Project README](../README.md)
+- [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- [API Reference](https://developer.globalpayments.com/api/references-overview)
+- [.NET SDK](https://github.com/globalpayments/dotnet-sdk)
+- [Test Cards](https://developer.globalpayments.com/resources/test-cards)

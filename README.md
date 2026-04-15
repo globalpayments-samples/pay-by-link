@@ -193,6 +193,15 @@ Creates a new payment link. **Required fields:**
 }
 ```
 
+## Test Cards
+
+| Brand | Number | CVV | Expiry |
+|-------|--------|-----|--------|
+| Visa | 4263 9826 4026 9299 | 123 | Any future |
+| Mastercard | 5425 2334 2424 1200 | 123 | Any future |
+
+> Pay by Link generates a hosted payment page. Test cards work when completing payment through the generated link in sandbox mode.
+
 ## Payment Link Configuration
 
 All implementations create payment links with these settings:
@@ -313,13 +322,15 @@ All implementations return identical JSON response formats to ensure consistent 
 
 Each implementation includes try-catch blocks with specific error categorization, ensuring consistent error reporting and debugging capabilities.
 
-## Support
+## Community
 
-For questions about this implementation or Global Payments integration:
+- 🌐 **Developer Portal** — [developer.globalpayments.com](https://developer.globalpayments.com)
+- 💬 **Discord** — [Join the community](https://discord.gg/myER9G9qkc)
+- 📋 **GitHub Discussions** — [github.com/orgs/globalpayments/discussions](https://github.com/orgs/globalpayments/discussions)
+- 📧 **Newsletter** — [Subscribe](https://www.globalpayments.com/en-gb/modals/newsletter)
+- 💼 **LinkedIn** — [Global Payments for Developers](https://www.linkedin.com/showcase/global-payments-for-developers/posts/?feedView=all)
 
-1. **Global Payments Documentation:** [developer.globalpay.com](https://developer.globalpay.com)
-2. **GP API Reference:** [GP API Documentation](https://developer.globalpay.com/api)
-3. **Technical Support:** Contact your Global Payments integration specialist
+Have a question or found a bug? [Open an issue](https://github.com/globalpayments-samples/pay-by-link/issues) or reach out at [communityexperience@globalpay.com](mailto:communityexperience@globalpay.com).
 
 ## License
 
