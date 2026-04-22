@@ -62,7 +62,7 @@ GP_API_ENVIRONMENT=sandbox     # "sandbox" or "production" (informational; SDK u
 PORT=8000                      # Optional; defaults to 8000
 ```
 
-Each language reads from a `.env` file in its own directory. No `.env.sample` files exist — copy the format above.
+Each language reads from a `.env` file in its own directory. A `.env.sample` file exists in each language directory — copy it to `.env` and fill in your credentials.
 
 ## API Request Shape
 
