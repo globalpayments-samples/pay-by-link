@@ -73,7 +73,8 @@ def generate_access_token():
         raise Exception('Missing GP_API_APP_ID or GP_API_APP_KEY environment variables')
 
     # Generate nonce using the same format as other implementations
-    nonce = datetime.now().strftime('%m/%d/%Y %I:%M:%S.%f %p')[:-3] + ' ' + datetime.now().strftime('%p')
+    now = datetime.now()
+    nonce = now.strftime('%m/%d/%Y %I:%M:%S.') + f'{now.microsecond // 1000:03d}' + now.strftime(' %p')
 
     token_request = {
         'app_id': GP_API_APP_ID,
