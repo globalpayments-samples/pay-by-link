@@ -29,12 +29,31 @@ This repository provides comprehensive **Pay by Link** implementations using the
 - **Production Ready** - Comprehensive error handling and logging
 - **OWASP Compliant** - Input sanitization and security best practices
 
+## Payment Flow
+
+Pay by Link is an asynchronous two-stage flow. The merchant creates the link server-side; the customer pays on a GP-hosted page with no merchant frontend involved.
+
+```mermaid
+sequenceDiagram
+    participant M as Merchant Backend
+    participant GP as GP API
+    participant C as Customer
+
+    M->>GP: POST /create-payment-link<br/>(amount, currency, reference)
+    GP-->>M: { paymentLink: "https://pay.globalpay.com/lnk_xxx" }
+    Note over M,C: Merchant shares link via email, SMS, or any channel
+    M->>C: Payment link
+    C->>GP: Opens payment link
+    GP-->>C: Hosted payment page (no merchant frontend)
+    C->>GP: Submits card details
+    GP-->>C: Payment confirmation
+    GP-->>M: Webhook notification (status_url)
+```
+
 ## Quick Start
 
 ### 1. Choose Your Language
-
 Navigate to any implementation directory:
-
 ```bash
 cd nodejs/    # Node.js with Express
 cd python/    # Python with Flask
