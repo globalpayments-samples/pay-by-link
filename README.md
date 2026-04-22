@@ -52,6 +52,8 @@ sequenceDiagram
 
 ## Quick Start
 
+### 1. Choose Your Language
+Navigate to any implementation directory:
 ```bash
 cd nodejs/    # Node.js with Express
 cd python/    # Python with Flask
