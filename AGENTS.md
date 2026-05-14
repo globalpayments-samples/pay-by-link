@@ -15,12 +15,12 @@
 ## Repository Structure
 
 ### Node.js (Express, direct GP API)
-- [`nodejs/server.js`](nodejs/server.js) — single-file server; `generateAccessToken` (L49–93), `handleCreatePaymentLink` (L125–287)
+- [`nodejs/server.js`](nodejs/server.js) — single-file server; `generateAccessToken` (L49–93), `create-payment-link` route handler (L125–287)
 - [`nodejs/index.html`](nodejs/index.html) — payment link creation form
 - [`nodejs/package.json`](nodejs/package.json) — lists `globalpayments-api` as a dependency but the implementation uses direct REST calls instead; the SDK is not imported
 
 ### Python (Flask, direct GP API)
-- [`python/server.py`](python/server.py) — `generate_access_token` (L62–102), `create_payment_link_api` (L104–142), `create_payment_link` route (L164–313)
+- [`python/server.py`](python/server.py) — `generate_access_token` (L62–103), `create_payment_link_api` (L105–143), `create_payment_link` route (L165–315)
 - [`python/requirements.txt`](python/requirements.txt) — Flask 3.0, requests 2.31
 
 ### PHP (native PHP + Global Payments SDK)
@@ -64,6 +64,17 @@ PORT=8000                      # Optional; defaults to 8000
 
 Each language reads from a `.env` file in its own directory. A `.env.sample` file exists in each language directory — copy it to `.env` and fill in your credentials.
 
+## Test Cards
+
+Use these card numbers when completing payment through a generated link in sandbox mode.
+
+| Brand | Number | CVV | Expiry |
+|-------|--------|-----|--------|
+| Visa | 4263970000005262 | 123 | Any future date |
+| Mastercard | 5425230000004415 | 123 | Any future date |
+
+Get your own sandbox credentials at [developer.globalpayments.com](https://developer.globalpayments.com).
+
 ## API Request Shape
 
 Applies to **Node.js, Python, and Go** (direct HTTP implementations only).
@@ -100,4 +111,5 @@ These demos have no authentication on the `/create-payment-link` endpoint, use `
 - **PHP**: `globalpayments/php-sdk` ^13.3
 - **Java**: `globalpayments-sdk` (com.heartlandpaymentsystems) 14.2.20
 - **.NET**: `GlobalPayments.Api` 9.0.16
-- **Node.js / Python / Go**: no GP SDK — direct REST calls to `https://apis.sandbox.globalpay.com/ucp`
+- **Node.js**: `globalpayments-api` ^3.10.6 listed in `package.json` but not imported — direct REST calls used instead
+- **Python / Go**: no GP SDK — direct REST calls to `https://apis.sandbox.globalpay.com/ucp`
