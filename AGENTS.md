@@ -106,6 +106,37 @@ Applies to **Node.js, Python, and Go** (direct HTTP implementations only).
 
 These demos have no authentication on the `/create-payment-link` endpoint, use `example.com` placeholder notification URLs, and log credentials to stdout in some debug paths. For production: add auth middleware, replace notification URLs, use secrets management instead of `.env` files, and enable HTTPS.
 
+## How to Run
+
+```bash
+cd nodejs && ./run.sh    # Node.js — :8000
+cd python && ./run.sh    # Python — :8000
+cd php && ./run.sh       # PHP — :8000
+cd java && ./run.sh      # Java — :8000
+cd dotnet && ./run.sh    # .NET — :8000
+cd go && ./run.sh        # Go — :8000
+# All at once:
+docker-compose up
+```
+
+## How to Verify
+
+```bash
+# Config endpoint
+curl http://localhost:8000/config
+# Expected: {"success":true,"data":{"environment":"sandbox","supportedCurrencies":["EUR","USD","GBP"],"supportedPaymentMethods":["CARD"]}}
+
+# Create payment link
+curl -X POST http://localhost:8000/create-payment-link \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 1000, "currency": "EUR", "reference": "test-001", "name": "Test User", "description": "Test payment"}'
+# Expected: {"success":true,"data":{"paymentLink":"https://pay.sandbox.globalpayments.com/pay/...","linkId":"...","reference":"test-001","amount":1000,"currency":"EUR"}}
+```
+
+## Making Changes
+
+All language implementations expose identical behavior. A change to one must be applied to all — each language in a separate commit. Do not modify shared files (`index.html`, `docker-compose.yml`) without confirming the change applies to every implementation.
+
 ## SDK Versions
 
 - **PHP**: `globalpayments/php-sdk` ^13.3
