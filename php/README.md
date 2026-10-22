@@ -8,13 +8,13 @@ A comprehensive PHP implementation for creating and managing payment links using
 - **Multi-Currency Support**: Support for EUR, USD, GBP, and CAD
 - **Flexible Configuration**: Environment-based configuration for sandbox/production
 - **Comprehensive Logging**: Built-in request logging for debugging and monitoring
-- **Modern PHP**: PHP 8.0+ with strict typing and PSR-4 autoloading
+- **Modern PHP**: PHP 8.2.35+, 8.3.36+, 8.4.27+, 8.5.12+ with strict typing and PSR-4 autoloading
 - **Docker Support**: Containerized deployment with multi-stage builds
 - **Security Best Practices**: Input validation, sanitization, and error handling
 
 ## Requirements
 
-- **PHP**: 8.0 or later
+- **PHP**: 8.2.35+, 8.3.36+, 8.4.27+, 8.5.12+
 - **Extensions**: curl, json, zip, dom, intl
 - **Composer**: For dependency management
 - **Global Payments Account**: With Pay by Link API credentials
@@ -73,7 +73,7 @@ chmod +x run.sh
 
 #### Manual startup:
 ```bash
-php -S localhost:8000
+./run.sh
 ```
 
 #### Using Docker:
