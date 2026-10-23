@@ -271,7 +271,7 @@ For production deployment, implement:
 The included Dockerfile provides a production-ready container:
 
 ```dockerfile
-FROM php:8.3-cli
+FROM php:8.3.36-cli
 # Optimized for production with minimal attack surface
 # Non-root user execution
 # Composer optimizations for production
