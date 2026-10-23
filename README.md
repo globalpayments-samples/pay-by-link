@@ -130,7 +130,7 @@ python server.py
 
 **PHP:**
 ```bash
-php -S localhost:8000 -t .
+./run.sh
 ```
 
 **Java:**
