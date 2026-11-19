@@ -17,7 +17,7 @@ A robust Java servlet implementation for creating and managing payment links usi
 
 ## Requirements
 
-- **Java**: 23+ (configured for latest JDK features)
+- **Java**: 21+
 - **Maven**: 3.6+ for dependency management and build lifecycle
 - **Servlet Container**: Tomcat 10.x or compatible Jakarta EE 9+ container
 - **Global Payments Account**: With Pay by Link API credentials (GP API App ID and Key)
@@ -66,7 +66,7 @@ GP_API_ENVIRONMENT=sandbox
 Install Maven dependencies and verify Java version:
 
 ```bash
-# Verify Java 23+ is installed
+# Verify Java 21+ is installed
 java -version
 
 # Verify Maven is installed
