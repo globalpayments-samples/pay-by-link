@@ -4,7 +4,7 @@ This Go Pay by Link implementation requires the following dependencies:
 
 ## Runtime Dependencies
 
-- **Go 1.23.4+** - Required Go version
+- **Go 1.26+** - Required Go version
 - **github.com/joho/godotenv v1.5.1** - Environment variable loading from .env files
 
 ## Installation
