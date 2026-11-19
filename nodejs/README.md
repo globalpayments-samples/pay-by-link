@@ -16,7 +16,7 @@ A comprehensive Node.js implementation for creating and managing payment links u
 
 ## Requirements
 
-- **Node.js**: 16.0 or later (ESM support required)
+- **Node.js**: 24 or later (ESM support required)
 - **npm**: 8.0 or later
 - **Global Payments Account**: With Pay by Link API credentials
 
