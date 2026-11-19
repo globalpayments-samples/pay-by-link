@@ -18,7 +18,7 @@ A modern ASP.NET Core 9.0 implementation for creating and managing payment links
 
 ## Requirements
 
-- **.NET 9.0+**: Latest .NET runtime and SDK
+- **.NET 10.0+**: Latest .NET runtime and SDK
 - **Global Payments Account**: With Pay by Link API credentials (GP API App ID and Key)
 - **Development Environment**: Visual Studio 2022, VS Code, or JetBrains Rider (optional)
 
@@ -66,7 +66,7 @@ GP_API_ENVIRONMENT=sandbox
 Install .NET dependencies and verify framework version:
 
 ```bash
-# Verify .NET 9.0+ is installed
+# Verify .NET 10.0+ is installed
 dotnet --version
 
 # Restore NuGet packages
@@ -434,7 +434,7 @@ The project uses minimal dependencies for optimal performance:
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -642,9 +642,9 @@ catch (Exception ex)
 
 2. **.NET Version Issues**
    ```
-   error NETSDK1045: The current .NET SDK does not support targeting .NET 9.0
+   error NETSDK1045: The current .NET SDK does not support targeting .NET 10.0
    ```
-   **Solution**: Install .NET 9.0 SDK from https://dotnet.microsoft.com/download
+   **Solution**: Install .NET 10.0 SDK from https://dotnet.microsoft.com/download
 
 3. **Port Already in Use**
    ```
