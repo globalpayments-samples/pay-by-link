@@ -26,6 +26,14 @@ GP_API_APP_KEY = os.getenv('GP_API_APP_KEY', 'eS5f8cCbuK8c6d5T')
 GP_API_BASE_URL = 'https://apis.sandbox.globalpay.com/ucp'
 GP_API_VERSION = '2021-03-22'
 
+class GpApiRequestError(Exception):
+    """A failed GP API call. Only `code` and `details` are sent back to the browser."""
+
+    def __init__(self, code: str, details: str):
+        super().__init__(details)
+        self.code = code
+        self.details = details
+
 def sanitize_reference(reference: str) -> str:
     """
     Sanitize reference string by removing potentially harmful characters.
@@ -70,7 +78,7 @@ def generate_access_token():
         Exception: If token generation fails
     """
     if not GP_API_APP_ID or not GP_API_APP_KEY:
-        raise Exception('Missing GP_API_APP_ID or GP_API_APP_KEY environment variables')
+        raise GpApiRequestError('UNKNOWN_ERROR', 'Missing GP_API_APP_ID or GP_API_APP_KEY environment variables')
 
     # Generate nonce using the same format as other implementations
     now = datetime.now()
@@ -98,7 +106,7 @@ def generate_access_token():
     )
 
     if not response.ok:
-        raise Exception(f'Token request failed with status {response.status_code}: {response.text}')
+        raise GpApiRequestError('TOKEN_GENERATION_ERROR', f'Token request failed with status {response.status_code}: {response.text}')
 
     return response.json()
 
@@ -138,7 +146,7 @@ def create_payment_link_api(payment_link_data: dict, access_token: str):
         except:
             error_msg = response.text
 
-        raise Exception(f'Payment link creation failed with status {response.status_code}: {error_msg}')
+        raise GpApiRequestError('API_ERROR', f'Payment link creation failed with status {response.status_code}: {error_msg}')
 
     return response.json()
 
@@ -292,25 +300,29 @@ def create_payment_link():
             }
         })
 
-    except Exception as error:
+    except GpApiRequestError as error:
         # Log error for debugging
         print(f'Payment link creation failed: {error}')
-
-        # Handle different error types
-        error_code = 'UNKNOWN_ERROR'
-        error_details = str(error)
-
-        if 'Failed to generate access token' in error_details or 'Token request failed' in error_details:
-            error_code = 'TOKEN_GENERATION_ERROR'
-        elif 'Payment link creation failed' in error_details or 'Invalid response' in error_details:
-            error_code = 'API_ERROR'
 
         return jsonify({
             'success': False,
             'message': 'Payment link creation failed',
             'error': {
-                'code': error_code,
-                'details': error_details
+                'code': error.code,
+                'details': error.details
+            }
+        }), 500
+
+    except Exception as error:
+        # Log the full error on the server, keep internals out of the response
+        print(f'Payment link creation failed: {error}')
+
+        return jsonify({
+            'success': False,
+            'message': 'Payment link creation failed',
+            'error': {
+                'code': 'UNKNOWN_ERROR',
+                'details': 'An unexpected error occurred'
             }
         }), 500
 
