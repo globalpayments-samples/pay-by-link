@@ -610,7 +610,7 @@ expiration_date = (datetime.now() + timedelta(days=10)).strftime('%Y-%m-%d %H:%M
 
 ### Development Configuration
 
-The Flask application defaults to development mode with debugging features:
+The Flask development server runs with debug mode off by default. Set `FLASK_DEBUG=1` in `.env` to turn on the debugging features:
 
 **Development Features**:
 - **Hot Reload**: Automatic server restart on code changes
@@ -623,7 +623,7 @@ if __name__ == '__main__':
     port = int(os.getenv('PORT', 8000))
     print(f"Server running at http://localhost:{port}")
     print("Pay by Link server ready for payment link creation!")
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=os.environ.get("FLASK_DEBUG") == "1")
 ```
 
 ### Production Configuration
