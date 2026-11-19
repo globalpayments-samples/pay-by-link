@@ -10,7 +10,7 @@ A modern Flask 3.0 implementation for creating and managing payment links using 
 - **Input Validation & Sanitization**: Comprehensive request validation with Python regex patterns and type hints
 - **Multi-Currency Support**: Support for EUR, USD, GBP, and other Global Payments currencies
 - **Type Hints**: Enhanced code clarity and IDE support with Python type annotations throughout
-- **Static File Serving**: Built-in static content serving with Flask's send_static_file()
+- **Frontend Serving**: Serves the payment page (index.html) with Flask's send_from_directory() and nothing else from the project folder
 - **Cross-Platform Deployment**: Runs on any platform supporting Python 3.8+ (Windows, Linux, macOS, containers)
 - **Production-Ready Error Handling**: Structured error responses with proper HTTP status codes
 - **WSGI Compatible**: Production deployment ready with gunicorn WSGI server included
@@ -287,14 +287,16 @@ import re
 import json
 import requests
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 # Initialize application
-app = Flask(__name__, static_folder='.')
+# No static folder: only index.html is served, never the server's own files
+app = Flask(__name__, static_folder=None)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # GP API Configuration
 GP_API_APP_ID = os.getenv('GP_API_APP_ID', 'QgKeFv7BuZlDcZvUeaxdA2jRsFukThCD')

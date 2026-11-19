@@ -11,14 +11,16 @@ import json
 import hashlib
 import requests
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 # Initialize application
-app = Flask(__name__, static_folder='.')
+# No static folder: only index.html is served, never the server's own files
+app = Flask(__name__, static_folder=None)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # GP API Configuration
 GP_API_APP_ID = os.getenv('GP_API_APP_ID', 'QgKeFv7BuZlDcZvUeaxdA2jRsFukThCD')
@@ -153,7 +155,7 @@ def create_payment_link_api(payment_link_data: dict, access_token: str):
 @app.route('/')
 def index():
     """Serve the main HTML page."""
-    return app.send_static_file('index.html')
+    return send_from_directory(BASE_DIR, 'index.html')
 
 @app.route('/config')
 def get_config():
