@@ -87,7 +87,7 @@ Install Python dependencies using pip:
 pip install -r requirements.txt
 
 # Or install individually
-pip install Flask==3.0.0 requests==2.31.0 python-dotenv==1.0.0 gunicorn==21.2.0
+pip install Flask==3.1.3 requests==2.33.0 python-dotenv==1.2.2 gunicorn==21.2.0
 
 # Verify installation
 pip list | grep -E "(Flask|requests|python-dotenv|gunicorn)"
@@ -511,11 +511,11 @@ The project uses minimal, well-maintained dependencies:
 ```txt
 # Global Payments Pay by Link - Python Dependencies
 # Core web framework and HTTP client
-Flask==3.0.0
-requests==2.31.0
+Flask==3.1.3
+requests==2.33.0
 
 # Environment configuration
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 
 # Production WSGI server
 gunicorn==21.2.0
@@ -523,9 +523,9 @@ gunicorn==21.2.0
 
 **Key Dependencies Explained**:
 
-- **Flask 3.0.0**: Modern, lightweight web framework with excellent performance and simplicity
-- **requests 2.31.0**: The most popular Python HTTP library for API communication
-- **python-dotenv 1.0.0**: Environment variable loading from .env files for configuration management
+- **Flask 3.1.3**: Modern, lightweight web framework with excellent performance and simplicity
+- **requests 2.33.0**: The most popular Python HTTP library for API communication
+- **python-dotenv 1.2.2**: Environment variable loading from .env files for configuration management
 - **gunicorn 21.2.0**: Production WSGI HTTP server for high-performance deployment
 
 ### Virtual Environment Setup
@@ -869,7 +869,7 @@ except Exception as error:
    **Solution**: Reinstall Flask and verify virtual environment:
    ```bash
    pip uninstall flask
-   pip install Flask==3.0.0
+   pip install Flask==3.1.3
    ```
 
 8. **Form Data Processing Issues**
