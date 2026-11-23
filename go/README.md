@@ -17,7 +17,7 @@ A high-performance Go implementation for creating and managing payment links usi
 
 ## Requirements
 
-- **Go**: 1.23.4 or later
+- **Go**: 1.26 or later
 - **Global Payments Account**: With Pay by Link API credentials
 
 ## Project Structure
@@ -351,7 +351,7 @@ The application leverages Go's robust standard library:
 ```go
 module github.com/globalpayments/pay-by-link-go
 
-go 1.23.4
+go 1.26
 
 require github.com/joho/godotenv v1.5.1
 ```
@@ -482,7 +482,7 @@ go build -ldflags="-w -s" -o paylink-server main.go
 Create a `Dockerfile`:
 
 ```dockerfile
-FROM golang:1.23.4-alpine AS builder
+FROM golang:1.26-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download

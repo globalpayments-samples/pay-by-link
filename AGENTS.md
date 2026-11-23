@@ -34,7 +34,7 @@
 
 ### .NET (ASP.NET Core minimal API + Global Payments SDK)
 - [`dotnet/Program.cs`](dotnet/Program.cs) — `ConfigureSdk` (L52–78), `ConfigurePaymentLinkEndpoint` (L123–225); amount divided at L189
-- [`dotnet/dotnet.csproj`](dotnet/dotnet.csproj) — `GlobalPayments.Api` 9.0.16, net9.0
+- [`dotnet/dotnet.csproj`](dotnet/dotnet.csproj) — `GlobalPayments.Api` 9.0.16, net10.0
 
 ### Go (net/http, direct GP API)
 - [`go/main.go`](go/main.go) — `generateAccessToken` (L150–206), `createPaymentLink` (L209–260), `handleCreatePaymentLink` (L277–501)

@@ -11,12 +11,12 @@ A comprehensive Node.js implementation for creating and managing payment links u
 - **Environment Configuration**: Flexible .env-based configuration for sandbox/production
 - **Input Validation**: Comprehensive request validation and sanitization
 - **Error Handling**: Robust error handling with detailed error codes
-- **Static File Serving**: Built-in static file serving for frontend assets
+- **Frontend Serving**: Serves the payment page (index.html) and nothing else from the project folder
 - **JSON & Form Support**: Handles both JSON and form-encoded requests
 
 ## Requirements
 
-- **Node.js**: 16.0 or later (ESM support required)
+- **Node.js**: 24 or later (ESM support required)
 - **npm**: 8.0 or later
 - **Global Payments Account**: With Pay by Link API credentials
 
@@ -191,12 +191,19 @@ API Error (500):
 ```javascript
 import express from 'express';
 import * as dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
 const port = process.env.PORT || 8000;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Serve only the frontend page, never the server's own files
+app.get(['/', '/index.html'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Middleware configuration
-app.use(express.static('.'));           // Static file serving
 app.use(express.urlencoded({ extended: true })); // Form data parsing
 app.use(express.json());                // JSON request parsing
 ```

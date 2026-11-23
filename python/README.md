@@ -10,7 +10,7 @@ A modern Flask 3.0 implementation for creating and managing payment links using 
 - **Input Validation & Sanitization**: Comprehensive request validation with Python regex patterns and type hints
 - **Multi-Currency Support**: Support for EUR, USD, GBP, and other Global Payments currencies
 - **Type Hints**: Enhanced code clarity and IDE support with Python type annotations throughout
-- **Static File Serving**: Built-in static content serving with Flask's send_static_file()
+- **Frontend Serving**: Serves the payment page (index.html) with Flask's send_from_directory() and nothing else from the project folder
 - **Cross-Platform Deployment**: Runs on any platform supporting Python 3.8+ (Windows, Linux, macOS, containers)
 - **Production-Ready Error Handling**: Structured error responses with proper HTTP status codes
 - **WSGI Compatible**: Production deployment ready with gunicorn WSGI server included
@@ -87,7 +87,7 @@ Install Python dependencies using pip:
 pip install -r requirements.txt
 
 # Or install individually
-pip install Flask==3.0.0 requests==2.31.0 python-dotenv==1.0.0 gunicorn==21.2.0
+pip install Flask==3.1.3 requests==2.33.0 python-dotenv==1.2.2 gunicorn==21.2.0
 
 # Verify installation
 pip list | grep -E "(Flask|requests|python-dotenv|gunicorn)"
@@ -287,14 +287,16 @@ import re
 import json
 import requests
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 # Initialize application
-app = Flask(__name__, static_folder='.')
+# No static folder: only index.html is served, never the server's own files
+app = Flask(__name__, static_folder=None)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # GP API Configuration
 GP_API_APP_ID = os.getenv('GP_API_APP_ID', 'QgKeFv7BuZlDcZvUeaxdA2jRsFukThCD')
@@ -511,11 +513,11 @@ The project uses minimal, well-maintained dependencies:
 ```txt
 # Global Payments Pay by Link - Python Dependencies
 # Core web framework and HTTP client
-Flask==3.0.0
-requests==2.31.0
+Flask==3.1.3
+requests==2.33.0
 
 # Environment configuration
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 
 # Production WSGI server
 gunicorn==21.2.0
@@ -523,9 +525,9 @@ gunicorn==21.2.0
 
 **Key Dependencies Explained**:
 
-- **Flask 3.0.0**: Modern, lightweight web framework with excellent performance and simplicity
-- **requests 2.31.0**: The most popular Python HTTP library for API communication
-- **python-dotenv 1.0.0**: Environment variable loading from .env files for configuration management
+- **Flask 3.1.3**: Modern, lightweight web framework with excellent performance and simplicity
+- **requests 2.33.0**: The most popular Python HTTP library for API communication
+- **python-dotenv 1.2.2**: Environment variable loading from .env files for configuration management
 - **gunicorn 21.2.0**: Production WSGI HTTP server for high-performance deployment
 
 ### Virtual Environment Setup
@@ -610,7 +612,7 @@ expiration_date = (datetime.now() + timedelta(days=10)).strftime('%Y-%m-%d %H:%M
 
 ### Development Configuration
 
-The Flask application defaults to development mode with debugging features:
+The Flask development server runs with debug mode off by default. Set `FLASK_DEBUG=1` in `.env` to turn on the debugging features:
 
 **Development Features**:
 - **Hot Reload**: Automatic server restart on code changes
@@ -623,7 +625,7 @@ if __name__ == '__main__':
     port = int(os.getenv('PORT', 8000))
     print(f"Server running at http://localhost:{port}")
     print("Pay by Link server ready for payment link creation!")
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=os.environ.get("FLASK_DEBUG") == "1")
 ```
 
 ### Production Configuration
@@ -869,7 +871,7 @@ except Exception as error:
    **Solution**: Reinstall Flask and verify virtual environment:
    ```bash
    pip uninstall flask
-   pip install Flask==3.0.0
+   pip install Flask==3.1.3
    ```
 
 8. **Form Data Processing Issues**
