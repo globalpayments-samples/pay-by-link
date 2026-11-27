@@ -69,9 +69,11 @@ public class Program
         };
 
         // Set up access token info for Pay by Link
+        // GP answers 403 if the app has no account with this name
+        var accountName = System.Environment.GetEnvironmentVariable("GP_API_ACCOUNT_NAME");
         config.AccessTokenInfo = new AccessTokenInfo
         {
-            TransactionProcessingAccountName = "paylink"
+            TransactionProcessingAccountName = string.IsNullOrEmpty(accountName) ? "paylink" : accountName
         };
 
         ServicesContainer.ConfigureService(config);
