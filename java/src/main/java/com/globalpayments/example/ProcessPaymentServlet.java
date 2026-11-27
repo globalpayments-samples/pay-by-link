@@ -77,7 +77,9 @@ public class ProcessPaymentServlet extends HttpServlet {
 
         // Set up access token info for Pay by Link
         AccessTokenInfo accessTokenInfo = new AccessTokenInfo();
-        accessTokenInfo.setTransactionProcessingAccountName("paylink");
+        // GP answers 403 if the app has no account with this name
+        String accountName = dotenv.get("GP_API_ACCOUNT_NAME", "");
+        accessTokenInfo.setTransactionProcessingAccountName(accountName.isEmpty() ? "paylink" : accountName);
         config.setAccessTokenInfo(accessTokenInfo);
 
         ServicesContainer.configureService(config);
