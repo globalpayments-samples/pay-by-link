@@ -306,6 +306,7 @@ def create_payment_link():
         # Log error for debugging
         print(f'Payment link creation failed: {error}')
 
+        # A rejected link request is a 400 like the other backends, a token failure stays a 500
         return jsonify({
             'success': False,
             'message': 'Payment link creation failed',
@@ -313,7 +314,7 @@ def create_payment_link():
                 'code': error.code,
                 'details': error.details
             }
-        }), 500
+        }), 400 if error.code == 'API_ERROR' else 500
 
     except Exception as error:
         # Log the full error on the server, keep internals out of the response
