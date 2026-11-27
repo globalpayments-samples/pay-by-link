@@ -26,7 +26,7 @@ use GlobalPayments\Api\Entities\Enums\Environment;
 try {
     // Load environment variables from .env file
     $dotenv = Dotenv::createImmutable(__DIR__);
-    $dotenv->load();
+    $dotenv->safeLoad();
 
     // Set response content type to JSON
     header('Content-Type: application/json');

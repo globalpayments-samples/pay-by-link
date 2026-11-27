@@ -49,7 +49,7 @@ ini_set('display_errors', '0');
 function configureSdk(): void
 {
     $dotenv = Dotenv::createImmutable(__DIR__);
-    $dotenv->load();
+    $dotenv->safeLoad();
 
     $config = new GpApiConfig();
     $config->appId = $_ENV['GP_API_APP_ID'] ?? '';
