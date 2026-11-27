@@ -264,11 +264,8 @@ public class ProcessPaymentServlet extends HttpServlet {
             );
 
         } catch (ApiException e) {
-            // Handle payment link creation errors
-            return String.format(
-                "{\"success\":false,\"message\":\"Payment link creation failed\",\"error\":{\"code\":\"API_ERROR\",\"details\":\"%s\"}}",
-                e.getMessage().replace("\"", "\\\"")
-            );
+            // Let doPost answer with a 400 and the error details
+            throw e;
         }
     }
 
