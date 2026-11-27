@@ -20,7 +20,6 @@ import com.global.api.entities.exceptions.ApiException;
 import com.global.api.entities.gpApi.entities.AccessTokenInfo;
 import com.global.api.serviceConfigs.GpApiConfig;
 import com.global.api.services.PayByLinkService;
-import com.global.api.utils.GenerationUtils;
 import org.joda.time.DateTime;
 
 import java.io.IOException;
@@ -249,7 +248,7 @@ public class ProcessPaymentServlet extends HttpServlet {
             Transaction transactionResponse = PayByLinkService
                 .create(payByLink, new BigDecimal(amount).divide(new BigDecimal(100)))
                 .withCurrency(currency)
-                .withClientTransactionId(GenerationUtils.generateRecurringKey())
+                .withClientTransactionId(reference)
                 .withDescription(description)
                 .execute();
 
