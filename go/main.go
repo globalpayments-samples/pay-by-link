@@ -412,10 +412,14 @@ func handleCreatePaymentLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set account name from token response or default to "paylink"
-	accountName := "paylink"
-	if tokenResponse.TransactionProcessingAccountName != "" {
+	// Account name from GP_API_ACCOUNT_NAME, then the token response, then "paylink".
+	// GP answers 403 if the app has no account with this name.
+	accountName := os.Getenv("GP_API_ACCOUNT_NAME")
+	if accountName == "" {
 		accountName = tokenResponse.TransactionProcessingAccountName
+	}
+	if accountName == "" {
+		accountName = "paylink"
 	}
 
 	// Create PayByLink data object
