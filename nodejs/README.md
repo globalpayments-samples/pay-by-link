@@ -6,7 +6,7 @@ A comprehensive Node.js implementation for creating and managing payment links u
 
 - **Express.js Framework**: Modern Node.js web framework with middleware support
 - **ES Modules**: Uses ESM (`"type": "module"`) for modern JavaScript standards
-- **Hybrid SDK Approach**: Combines Global Payments SDK for authentication with direct API calls for payment links
+- **Direct API Calls**: Gets the access token and creates payment links with direct GP API calls
 - **Multi-Currency Support**: Support for EUR, USD, GBP, and other currencies
 - **Environment Configuration**: Flexible .env-based configuration for sandbox/production
 - **Input Validation**: Comprehensive request validation and sanitization
@@ -50,6 +50,9 @@ GP_API_APP_KEY=your_app_key_here
 
 # Environment (sandbox or production)
 GP_API_ENVIRONMENT=sandbox
+
+# Optional: the account on your app that has Pay by Link (defaults to paylink)
+GP_API_ACCOUNT_NAME=
 
 # Server configuration
 PORT=8000
@@ -208,43 +211,23 @@ app.use(express.urlencoded({ extended: true })); // Form data parsing
 app.use(express.json());                // JSON request parsing
 ```
 
-#### Global Payments SDK Configuration
-```javascript
-import { ServicesContainer, GpApiConfig, Environment, Channel } from 'globalpayments-api';
-
-const config = new GpApiConfig();
-config.appId = process.env.GP_API_APP_ID;
-config.appKey = process.env.GP_API_APP_KEY;
-config.environment = Environment.Test; // or Environment.Production
-config.channel = Channel.CardNotPresent;
-config.country = 'GB';
-
-// Pay by Link specific configuration
-config.accessTokenInfo = {
-    transactionProcessingAccountName: 'paylink'
-};
-
-ServicesContainer.configureService(config);
-```
-
-#### Hybrid SDK + Direct API Approach
-The implementation uses a hybrid approach:
-
-1. **SDK for Authentication**: Uses Global Payments SDK to generate access tokens
-2. **Direct API for Payment Links**: Makes direct HTTP requests to create payment links
+#### Access Token and Pay by Link Account
+The server gets its access token straight from GP API (POST /ucp/accesstoken, signed with SHA512 of the nonce and the app key) and then creates the link with a direct call. The account name comes from GP_API_ACCOUNT_NAME, then the token response, then paylink.
 
 ```javascript
-// Generate token using SDK
-const tokenResponse = await GpApiService.generateTransactionKey(config);
-const accessToken = tokenResponse.accessToken;
+const tokenResponse = await generateAccessToken();
+const accessToken = tokenResponse.token;
+
+// GP answers 403 if the app has no account with this name
+const accountName = process.env.GP_API_ACCOUNT_NAME || tokenResponse.transaction_processing_account_name || 'paylink';
 
 // Create payment link via direct API call
-const response = await fetch("https://apis.sandbox.globalpay.com/ucp/links", {
+const response = await fetch(`${GP_API_BASE_URL}/links`, {
     method: "POST",
     headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${accessToken}`,
-        "X-GP-Version": "2021-03-22",
+        "X-GP-Version": GP_API_VERSION,
     },
     body: JSON.stringify(payByLinkData)
 });

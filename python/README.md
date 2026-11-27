@@ -73,6 +73,9 @@ GP_API_APP_KEY=your_app_key_here
 # Environment (sandbox or production)
 GP_API_ENVIRONMENT=sandbox
 
+# Optional: the account on your app that has Pay by Link (defaults to paylink)
+GP_API_ACCOUNT_NAME=
+
 # Server Configuration (optional)
 PORT=8000
 FLASK_ENV=development

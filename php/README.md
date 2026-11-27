@@ -53,6 +53,9 @@ GP_API_APP_KEY=your_app_key_here
 
 # Environment (sandbox or production)
 GP_API_ENVIRONMENT=sandbox
+
+# Optional: the account on your app that has Pay by Link (defaults to paylink)
+GP_API_ACCOUNT_NAME=
 ```
 
 ### 2. Installation
@@ -161,15 +164,16 @@ The application uses the Global Payments PHP SDK with the following configuratio
 
 ```php
 $config = new GpApiConfig();
-$config->appId = $_ENV['GP_API_APP_ID'];
-$config->appKey = $_ENV['GP_API_APP_KEY'];
+$config->appId = envValue('GP_API_APP_ID');
+$config->appKey = envValue('GP_API_APP_KEY');
 $config->environment = Environment::TEST; // or Environment::PRODUCTION
 $config->channel = Channel::CardNotPresent;
 $config->country = 'GB';
 
 // Pay by Link specific configuration
 $accessTokenInfo = new AccessTokenInfo();
-$accessTokenInfo->transactionProcessingAccountName = 'paylink';
+// GP answers 403 if the app has no account with this name
+$accessTokenInfo->transactionProcessingAccountName = envValue('GP_API_ACCOUNT_NAME') ?: 'paylink';
 $config->accessTokenInfo = $accessTokenInfo;
 ```
 

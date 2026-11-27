@@ -49,6 +49,9 @@ Update `.env` with your Global Payments API credentials:
 GP_API_APP_ID=your_app_id_here
 GP_API_APP_KEY=your_app_key_here
 
+# Optional: the account on your app that has Pay by Link (defaults to paylink)
+GP_API_ACCOUNT_NAME=
+
 # Optional: Server port (defaults to 8000)
 PORT=8000
 ```
