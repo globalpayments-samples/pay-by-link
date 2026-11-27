@@ -82,23 +82,49 @@ function sanitizeReference(?string $reference): string
     return substr($sanitized, 0, 100);
 }
 
-// Initialize SDK configuration
-configureSdk();
+/**
+ * Send a JSON error response and stop
+ *
+ * @param int    $status  HTTP status code
+ * @param string $code    Error code
+ * @param string $details Error details
+ *
+ * @return void
+ */
+function sendError(int $status, string $code, string $details): void
+{
+    http_response_code($status);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Payment link creation failed',
+        'error' => [
+            'code' => $code,
+            'details' => $details
+        ]
+    ]);
+    exit;
+}
+
+header('Content-Type: application/json');
 
 try {
+    // Initialize SDK configuration
+    configureSdk();
+
     // Debug: Log received POST data
     error_log('Received POST data: ' . print_r($_POST, true));
 
     // Validate required fields
-    if (!isset($_POST['amount'], $_POST['currency'], $_POST['reference'], $_POST['name'], $_POST['description'])) {
-        throw new ApiException('Missing required fields. Received: ' . implode(', ', array_keys($_POST)));
+    foreach (['amount', 'currency', 'reference', 'name', 'description'] as $field) {
+        if (!isset($_POST[$field]) || trim($_POST[$field]) === '') {
+            sendError(400, 'MISSING_REQUIRED_FIELDS', 'Missing required fields. Received: ' . implode(', ', array_keys($_POST)));
+        }
     }
-    
 
-    // Parse and validate amount
-    $amount = intval($_POST['amount']);
-    if ($amount <= 0) {
-        throw new ApiException('Invalid amount');
+    // Parse and validate amount (whole cents only)
+    $amount = filter_var($_POST['amount'], FILTER_VALIDATE_INT);
+    if ($amount === false || $amount <= 0) {
+        sendError(400, 'INVALID_AMOUNT', 'Invalid amount');
     }
 
     // Sanitize and prepare data
@@ -149,14 +175,9 @@ try {
 
 } catch (ApiException $e) {
     // Handle payment link creation errors
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Payment link creation failed',
-        'error' => [
-            'code' => 'API_ERROR',
-            'details' => $e->getMessage(),
-            'responseCode' => $e
-        ]
-    ]);
+    sendError(400, 'API_ERROR', $e->getMessage());
+} catch (\Throwable $e) {
+    // Log the full error on the server, keep internals out of the response
+    error_log('Payment link creation failed: ' . $e->getMessage());
+    sendError(500, 'UNKNOWN_ERROR', 'An unexpected error occurred');
 }
