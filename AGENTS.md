@@ -126,12 +126,15 @@ docker-compose up
 curl http://localhost:8000/config
 # Expected: {"success":true,"data":{"environment":"sandbox","supportedCurrencies":["EUR","USD","GBP"],"supportedPaymentMethods":["CARD"]}}
 
-# Create payment link
+# Create payment link (form encoded, as the page sends it; only Node.js and Go also accept JSON)
 curl -X POST http://localhost:8000/create-payment-link \
-  -H "Content-Type: application/json" \
-  -d '{"amount": 1000, "currency": "EUR", "reference": "test-001", "name": "Test User", "description": "Test payment"}'
-# Expected: {"success":true,"data":{"paymentLink":"https://pay.sandbox.globalpayments.com/pay/...","linkId":"...","reference":"test-001","amount":1000,"currency":"EUR"}}
+  --data-urlencode "amount=1000" --data-urlencode "currency=EUR" \
+  --data-urlencode "reference=test-001" --data-urlencode "name=Test User" \
+  --data-urlencode "description=Test payment"
+# Expected: {"success":true,"message":"Payment link created successfully! Link ID: LNK_...","data":{"paymentLink":"https://apis.sandbox.globalpay.com/ucp/postback/...","linkId":"LNK_...","reference":"test-001","amount":1000,"currency":"EUR"}}
 ```
+
+PHP serves the same endpoints as `/config.php` and `/create-payment-link.php`. GP rejects a link reference shorter than 8 characters with `INVALID_REQUEST_DATA`.
 
 ## Making Changes
 
