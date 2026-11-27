@@ -31,7 +31,6 @@ use GlobalPayments\Api\Entities\Enums\PayByLinkType;
 use GlobalPayments\Api\Entities\Enums\PaymentMethodUsageMode;
 use GlobalPayments\Api\Entities\Enums\PaymentMethodName;
 use GlobalPayments\Api\Services\PayByLinkService;
-use GlobalPayments\Api\Utils\GenerationUtils;
 use GlobalPayments\Api\Entities\GpApi\AccessTokenInfo;
 use GlobalPayments\Api\Utils\Logging\Logger;
 use GlobalPayments\Api\Utils\Logging\SampleRequestLogger;
@@ -131,7 +130,7 @@ try {
     // Create the payment link using PayByLinkService (amount in dollars)
     $response = PayByLinkService::create($payByLink, $amount / 100)
         ->withCurrency($currency)
-        ->withClientTransactionId(GenerationUtils::getGuid())
+        ->withClientTransactionId($reference)
         ->withDescription($description)
         ->execute();
 
