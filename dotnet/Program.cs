@@ -188,7 +188,7 @@ public class Program
                 // Create the payment link using PayByLinkService (amount in dollars)
                 var response = PayByLinkService.Create(payByLink, amount / 100m)
                     .WithCurrency(currency)
-                    .WithClientTransactionId(GenerationUtils.GenerateRecurringKey())
+                    .WithClientTransactionId(reference)
                     .WithDescription(description)
                     .Execute();
 
