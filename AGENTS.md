@@ -6,7 +6,7 @@
 
 1. **Amount units differ between SDK and direct-API implementations.** PHP, Java, and .NET use `PayByLinkService`, which expects the amount in dollars — so they divide the incoming cents value by 100 before calling `.create()`. Node.js, Python, and Go post the raw integer cents directly to the REST endpoint. Mixing these up silently creates links for 100× the intended amount.
 
-2. **The `account_name` field must be `"paylink"` for Pay by Link to work.** SDK implementations set `AccessTokenInfo.transactionProcessingAccountName = "paylink"` in the SDK config. Direct-API implementations read `transaction_processing_account_name` from the token response and fall back to `"paylink"` if absent. Without this, the GP API will return an error or use the wrong account.
+2. **The `account_name` comes from `GP_API_ACCOUNT_NAME`.** All six read `GP_API_ACCOUNT_NAME` first. The direct API versions (Node, Python, Go) then try `transaction_processing_account_name` from the token response, and everything falls back to `"paylink"`. SDK versions pass it as `AccessTokenInfo.transactionProcessingAccountName`. GP answers 403 if the app has no account called paylink, so set GP_API_ACCOUNT_NAME to the account on your app that has Pay by Link.
 
 3. **`country` must be `"GB"` regardless of transaction currency.** All six implementations hardcode this. It reflects the merchant registration country, not the customer's country or the payment currency, and is easy to miss when adapting the code.
 
@@ -59,6 +59,7 @@ All implementations expose identical endpoints with identical JSON response shap
 GP_API_APP_ID=your_app_id      # GP API application ID
 GP_API_APP_KEY=your_app_key    # GP API application key
 GP_API_ENVIRONMENT=sandbox     # "sandbox" or "production" (informational; SDK uses Environment.TEST/PRODUCTION)
+GP_API_ACCOUNT_NAME=           # Optional; the app's Pay by Link account, defaults to paylink
 PORT=8000                      # Optional; defaults to 8000
 ```
 
@@ -89,7 +90,7 @@ Applies to **Node.js, Python, and Go** (direct HTTP implementations only).
 - `POST https://apis.sandbox.globalpay.com/ucp/links`
 - Headers: `Authorization: Bearer {token}`, `X-GP-Version: 2021-03-22`
 - Key body fields:
-  - `account_name` — from `transaction_processing_account_name` in token response, or `"paylink"`
+  - `account_name` from `GP_API_ACCOUNT_NAME`, then `transaction_processing_account_name` in the token response, then `"paylink"`
   - `type: "PAYMENT"`, `usage_mode: "SINGLE"`, `usage_limit: 1`
   - `transactions.channel: "CNP"`, `transactions.country: "GB"`
   - `transactions.amount` — integer cents (NOT divided by 100 here)
