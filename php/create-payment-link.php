@@ -57,10 +57,24 @@ function configureSdk(): void
 
     // Set up access token info for Pay by Link
     $accessTokenInfo = new AccessTokenInfo();
-    $accessTokenInfo->transactionProcessingAccountName = 'paylink';
+    // GP answers 403 if the app has no account with this name
+    $accessTokenInfo->transactionProcessingAccountName = envValue('GP_API_ACCOUNT_NAME') ?: 'paylink';
     $config->accessTokenInfo = $accessTokenInfo;
 
     ServicesContainer::configureService($config);
+}
+
+/**
+ * Read a setting from .env, falling back to the process environment
+ *
+ * @param string $name The variable name
+ *
+ * @return string The value, or an empty string when it is not set
+ */
+function envValue(string $name): string
+{
+    $value = $_ENV[$name] ?? getenv($name);
+    return is_string($value) ? $value : '';
 }
 
 /**
