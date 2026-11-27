@@ -227,7 +227,7 @@ The `ProcessPaymentServlet` handles both configuration and payment link creation
 @WebServlet(urlPatterns = {"/create-payment-link", "/config"})
 public class ProcessPaymentServlet extends HttpServlet {
 
-    private final Dotenv dotenv = Dotenv.load();
+    private final Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
     private String environment;
 
     @Override

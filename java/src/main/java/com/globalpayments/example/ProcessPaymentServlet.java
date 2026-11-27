@@ -44,7 +44,7 @@ import java.math.BigDecimal;
 public class ProcessPaymentServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
-    private final Dotenv dotenv = Dotenv.load();
+    private final Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
     private String environment;
 
     /**
