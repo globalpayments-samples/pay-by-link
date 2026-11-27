@@ -180,7 +180,8 @@ app.post('/create-payment-link', async (req, res) => {
 
         const accessToken = tokenResponse.token;
         const merchantId = tokenResponse.merchant_id;
-        const accountName = tokenResponse.transaction_processing_account_name || 'paylink';
+        // GP answers 403 if the app has no account with this name
+        const accountName = process.env.GP_API_ACCOUNT_NAME || tokenResponse.transaction_processing_account_name || 'paylink';
 
         // Create PayByLink data object
         const payByLinkData = {
