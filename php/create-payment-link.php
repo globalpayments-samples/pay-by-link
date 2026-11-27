@@ -49,8 +49,8 @@ function configureSdk(): void
     $dotenv->safeLoad();
 
     $config = new GpApiConfig();
-    $config->appId = $_ENV['GP_API_APP_ID'] ?? '';
-    $config->appKey = $_ENV['GP_API_APP_KEY'] ?? '';
+    $config->appId = envValue('GP_API_APP_ID');
+    $config->appKey = envValue('GP_API_APP_KEY');
     $config->environment = Environment::TEST; // Use Environment::PRODUCTION for live transactions
     $config->channel = Channel::CardNotPresent;
     $config->country = 'GB';

@@ -41,7 +41,7 @@ try {
     }
 
     // Determine environment from configuration
-    $environment = $_ENV['GP_API_ENVIRONMENT'] ?? 'sandbox';
+    $environment = $_ENV['GP_API_ENVIRONMENT'] ?? (getenv('GP_API_ENVIRONMENT') ?: 'sandbox');
     $isProduction = strtolower($environment) === 'production';
 
     // Return configuration for Pay by Link
