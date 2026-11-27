@@ -7,8 +7,9 @@ services:
       - "8001:8000"
     environment:
       - PORT=8000
-      - PUBLIC_API_KEY=${PUBLIC_API_KEY}
-      - SECRET_API_KEY=${SECRET_API_KEY}
+      - GP_API_APP_ID=${GP_API_APP_ID}
+      - GP_API_APP_KEY=${GP_API_APP_KEY}
+      - GP_API_ENVIRONMENT=${GP_API_ENVIRONMENT:-sandbox}
     networks:
       - payments
     healthcheck:
@@ -26,8 +27,9 @@ services:
       - "8002:8000"
     environment:
       - PORT=8000
-      - PUBLIC_API_KEY=${PUBLIC_API_KEY}
-      - SECRET_API_KEY=${SECRET_API_KEY}
+      - GP_API_APP_ID=${GP_API_APP_ID}
+      - GP_API_APP_KEY=${GP_API_APP_KEY}
+      - GP_API_ENVIRONMENT=${GP_API_ENVIRONMENT:-sandbox}
     networks:
       - payments
     healthcheck:
@@ -44,8 +46,9 @@ services:
     ports:
       - "8003:8000"
     environment:
-      - PUBLIC_API_KEY=${PUBLIC_API_KEY}
-      - SECRET_API_KEY=${SECRET_API_KEY}
+      - GP_API_APP_ID=${GP_API_APP_ID}
+      - GP_API_APP_KEY=${GP_API_APP_KEY}
+      - GP_API_ENVIRONMENT=${GP_API_ENVIRONMENT:-sandbox}
     networks:
       - payments
     healthcheck:
@@ -62,8 +65,9 @@ services:
     ports:
       - "8004:8000"
     environment:
-      - PUBLIC_API_KEY=${PUBLIC_API_KEY}
-      - SECRET_API_KEY=${SECRET_API_KEY}
+      - GP_API_APP_ID=${GP_API_APP_ID}
+      - GP_API_APP_KEY=${GP_API_APP_KEY}
+      - GP_API_ENVIRONMENT=${GP_API_ENVIRONMENT:-sandbox}
     networks:
       - payments
     healthcheck:
@@ -81,8 +85,9 @@ services:
       - "8005:8000"
     environment:
       - PORT=8000
-      - PUBLIC_API_KEY=${PUBLIC_API_KEY}
-      - SECRET_API_KEY=${SECRET_API_KEY}
+      - GP_API_APP_ID=${GP_API_APP_ID}
+      - GP_API_APP_KEY=${GP_API_APP_KEY}
+      - GP_API_ENVIRONMENT=${GP_API_ENVIRONMENT:-sandbox}
     networks:
       - payments
     healthcheck:
@@ -100,8 +105,9 @@ services:
       - "8006:8000"
     environment:
       - ASPNETCORE_URLS=http://+:8000
-      - PUBLIC_API_KEY=${PUBLIC_API_KEY}
-      - SECRET_API_KEY=${SECRET_API_KEY}
+      - GP_API_APP_ID=${GP_API_APP_ID}
+      - GP_API_APP_KEY=${GP_API_APP_KEY}
+      - GP_API_ENVIRONMENT=${GP_API_ENVIRONMENT:-sandbox}
     networks:
       - payments
     healthcheck:

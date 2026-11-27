@@ -36,8 +36,8 @@ check_env() {
     if [ ! -f .env ]; then
         echo -e "${RED}❌ .env file not found${NC}"
         echo -e "${YELLOW}Please create .env file with your API keys:${NC}"
-        echo "PUBLIC_API_KEY=your_public_key"
-        echo "SECRET_API_KEY=your_secret_key"
+        echo "GP_API_APP_ID=your_app_id"
+        echo "GP_API_APP_KEY=your_app_key"
         exit 1
     fi
     
