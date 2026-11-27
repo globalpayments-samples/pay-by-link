@@ -33,8 +33,6 @@ use GlobalPayments\Api\Entities\Enums\PaymentMethodName;
 use GlobalPayments\Api\Services\PayByLinkService;
 use GlobalPayments\Api\Utils\GenerationUtils;
 use GlobalPayments\Api\Entities\GpApi\AccessTokenInfo;
-use GlobalPayments\Api\Utils\Logging\Logger;
-use GlobalPayments\Api\Utils\Logging\SampleRequestLogger;
 
 ini_set('display_errors', '0');
 
@@ -62,8 +60,6 @@ function configureSdk(): void
     $accessTokenInfo = new AccessTokenInfo();
     $accessTokenInfo->transactionProcessingAccountName = 'paylink';
     $config->accessTokenInfo = $accessTokenInfo;
-
-    $config->requestLogger = new SampleRequestLogger(new Logger("logs"));
 
     ServicesContainer::configureService($config);
 }
