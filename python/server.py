@@ -237,7 +237,8 @@ def create_payment_link():
 
         access_token = token_response['token']
         merchant_id = token_response.get('merchant_id')
-        account_name = token_response.get('transaction_processing_account_name', 'paylink')
+        # GP answers 403 if the app has no account with this name
+        account_name = os.getenv('GP_API_ACCOUNT_NAME') or token_response.get('transaction_processing_account_name') or 'paylink'
 
         # Create PayByLink data object matching other implementations structure
         expiration_date = (datetime.now() + timedelta(days=10)).strftime('%Y-%m-%d %H:%M:%S')
